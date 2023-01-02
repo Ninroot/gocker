@@ -17,4 +17,4 @@ Great souces to learn Docker:
 
 ## TODO
 - [x] change hostname inside the container using the `/proc/self/exec` trick described in the medium article
-- [ ] chroot
+- [x] basic chroot
