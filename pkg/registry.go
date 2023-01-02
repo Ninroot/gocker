@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"errors"
 	"io"
 	"os/exec"
 )
@@ -27,7 +26,7 @@ func NewRegistryService(imgStore ImageStore) RegistryService {
 }
 
 func (reg *RegistryService) Pull(image string) error {
-	return errors.New("bad")
+	// return errors.New("bad")
 	export := exec.Command("docker", "export", image)
 	untar := exec.Command("tar", "-C", reg.imgStore.rootDir, "-xvf", "-")
 	r, w := io.Pipe()
