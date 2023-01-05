@@ -9,6 +9,6 @@ var techCommand = &cobra.Command{
 	Use:   "tech",
 	Short: "technical subcommand used by gocker itself",
 	Run: func(cmd *cobra.Command, args []string) {
-		pkg.Chroot(args)
+		pkg.Init(args)
 	},
 }

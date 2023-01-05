@@ -39,13 +39,18 @@ func Run(args []string) {
 	}
 }
 
-func Chroot(args []string) {
-	log.Printf("chroot with args %v, PID: %v", args, os.Getpid())
+func Init(args []string) {
+	log.Printf("Init with args %v, PID: %v", args, os.Getpid())
 	syscall.Sethostname([]byte("container"))
-	syscall.Chroot("/tmp/gocker/img/")
-	syscall.Chdir("/")
+	// syscall.Chroot("/tmp/gocker/img/")
+	if err := syscall.Chroot("/home/ninroot/Downloads/alpine_arm64v8"); err != nil {
+		log.Fatal(err)
+	}
+	if err := syscall.Chdir("/"); err != nil {
+		log.Fatal(err)
+	}
 
-	// mount /proc to make `ps` working
+	// mount /proc to make commands such `ps` working
 	syscall.Mount("proc", "proc", "proc", 0, "")
 	defer syscall.Unmount("/proc", 0)
 
