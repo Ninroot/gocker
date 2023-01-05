@@ -34,18 +34,12 @@ func NewRegistryService(imgStore ImageStore) RegistryService {
 }
 
 func (reg *RegistryService) Pull(image string) error {
-	var username string
-
-	fmt.Printf("To interact with the registry <%s>, credentials are required.\n", reg.registry)
-	fmt.Printf("username (not email):")
-	fmt.Scanf("%s", &username)
-	fmt.Printf("password:")
-	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	username, password, err := login(reg.registry)
 	if err != nil {
 		return err
 	}
 
-	hub, err := registry.New(reg.registry, username, string(password))
+	hub, err := registry.New(reg.registry, username, password)
 	if err != nil {
 		return err
 	}
@@ -79,4 +73,27 @@ func (reg *RegistryService) Pull(image string) error {
 	io.Copy(file, reader)
 
 	return nil
+}
+
+func login(registry string) (string, string, error) {
+	username := os.Getenv("GOCKER_REGISTRY_USERNAME")
+	password := os.Getenv("GOCKER_REGISTRY_PASSWORD")
+
+	if username == "" && password == "" {
+		fmt.Printf("To interact with the registry <%s>, credentials are required.\n", registry)
+	}
+	if username == "" {
+		if _, err := fmt.Scanf("%s", &username); err != nil {
+			return "", "", err
+		}
+	}
+	if password == "" {
+		p, err := term.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			return "", "", err
+		}
+		password = string(p)
+	}
+
+	return username, password, nil
 }
