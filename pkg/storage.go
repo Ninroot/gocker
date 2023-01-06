@@ -3,6 +3,7 @@ package pkg
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,8 +13,8 @@ import (
 	"github.com/ninroot/gocker/config"
 )
 
-func CreateImage(reader io.ReadCloser, digest string) error {
-	rootDir := config.DefaultImageStoreRootDir + digest
+func CreateImage(reader io.ReadCloser, image ImageId) error {
+	rootDir := filepath.Join(config.DefaultImageStoreRootDir, image.Digest)
 	prs, err := Exist(rootDir)
 	if err != nil {
 		return err
@@ -30,7 +31,16 @@ func CreateImage(reader io.ReadCloser, digest string) error {
 		return err
 	}
 
-	log.Printf("image <%s> stored at <%s>", digest, rootDir)
+	source, err := os.Create(filepath.Join(rootDir, "source"))
+	if err != nil {
+		return err
+	}
+	encoder := json.NewEncoder(source)
+	if err := encoder.Encode(image); err != nil {
+		return err
+	}
+
+	log.Printf("image <%s> stored at <%s>", image.Digest, rootDir)
 	return nil
 }
 

@@ -17,8 +17,9 @@ type ImageStore struct {
 }
 
 type ImageId struct {
-	name string
-	tag  string
+	Name   string `json:"name"`
+	Tag    string `json:"tag"`
+	Digest string `json:"digest"`
 }
 
 func NewImageStore(rootDir string) ImageStore {
@@ -40,7 +41,7 @@ func NewRegistryService(imgStore ImageStore) RegistryService {
 }
 
 func (reg *RegistryService) Pull(imageName string) error {
-	imageId, err := parse(imageName)
+	image, err := parse(imageName)
 	if err != nil {
 		return err
 	}
@@ -55,22 +56,24 @@ func (reg *RegistryService) Pull(imageName string) error {
 		return err
 	}
 
-	if imageId.tag == "" {
-		imageId.tag = "latest"
+	if image.Tag == "" {
+		image.Tag = "latest"
 	}
-	manifest, err := hub.ManifestV2(imageId.name, imageId.tag)
+	manifest, err := hub.ManifestV2(image.Name, image.Tag)
 	if err != nil {
 		return err
 	}
-	log.Printf("Found manifest for image <%s:%s>", imageId.name, imageId.tag)
+	log.Printf("Found manifest for image <%s:%s>", image.Name, image.Tag)
 
 	digest := manifest.Layers[0].Digest
-	reader, err := hub.DownloadBlob(imageId.name, digest)
+	reader, err := hub.DownloadBlob(image.Name, digest)
 	if err != nil {
 		return err
 	}
 
-	if err := CreateImage(reader, string(digest)); err != nil {
+	image.Digest = string(digest)
+
+	if err := CreateImage(reader, image); err != nil {
 		return err
 	}
 
@@ -82,10 +85,10 @@ func (reg *RegistryService) Pull(imageName string) error {
 func parse(imageName string) (ImageId, error) {
 	s := strings.Split(imageName, ":")
 	if len(s) == 1 {
-		return ImageId{name: s[0]}, nil
+		return ImageId{Name: s[0]}, nil
 	}
 	if len(s) == 2 {
-		return ImageId{name: s[0], tag: s[1]}, nil
+		return ImageId{Name: s[0], Tag: s[1]}, nil
 	}
 	return ImageId{}, errors.New("image name has the wrong format")
 }
