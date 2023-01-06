@@ -3,10 +3,8 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/heroku/docker-registry-client/registry"
@@ -72,14 +70,9 @@ func (reg *RegistryService) Pull(imageName string) error {
 		return err
 	}
 
-	name := filepath.Base(imageId.name) + ".tar"
-	file, err := os.Create(name)
-	if err != nil {
+	if err := CreateImage(reader, string(digest)); err != nil {
 		return err
 	}
-
-	defer file.Close()
-	io.Copy(file, reader)
 
 	return nil
 }

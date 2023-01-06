@@ -11,3 +11,11 @@ func EnsureDir(path string) string {
 	}
 	return path
 }
+
+func Exist(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err != nil {
+		return !os.IsNotExist(err), nil
+	}
+	return false, err
+}
