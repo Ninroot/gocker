@@ -1,5 +1,13 @@
 # Gocker
 
+```shell
+# for arm image
+./build/gocker pull arm64v8/alpine
+./build/gocker run arm64v8/alpine
+```
+
+## Dev comments
+
 `CLONE_NEWUTS` create the process in a new UTS namespace.
 Allow the set of a new hostname inside the container (using for example `hostname <name>`) without affecting the hostname of the host.
 
