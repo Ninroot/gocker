@@ -4,23 +4,32 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
-
-	"github.com/ninroot/gocker/config"
 )
 
-func CreateImage(reader io.ReadCloser, image ImageId) error {
-	rootDir := filepath.Join(config.DefaultImageStoreRootDir, image.Digest)
+type ImageStore struct {
+	rootDir string
+}
+
+func NewImageStore(rootDir string) ImageStore {
+	return ImageStore{
+		rootDir: rootDir,
+	}
+}
+
+func (store ImageStore) CreateImage(reader io.ReadCloser, image ImageId) error {
+	rootDir := filepath.Join(store.rootDir, image.Digest)
 	prs, err := Exist(rootDir)
 	if err != nil {
 		return err
 	}
 	if prs {
-		return fmt.Errorf("image <%s> already exists", rootDir)
+		log.Printf("image <%s> already exists", rootDir)
+		return nil
 	}
 
 	if err := os.MkdirAll(rootDir, 0700); err != nil {
@@ -42,6 +51,42 @@ func CreateImage(reader io.ReadCloser, image ImageId) error {
 
 	log.Printf("image <%s> stored at <%s>", image.Digest, rootDir)
 	return nil
+}
+
+func (store ImageStore) FindImage(image ImageId) (*ImageId, error) {
+	items, err := os.ReadDir(store.rootDir)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		if item.IsDir() {
+			source := path.Join(store.rootDir, item.Name(), "source")
+			prs, err := Exist(source)
+			log.Println("source", source)
+			if err != nil {
+				return nil, err
+			}
+			if prs {
+				file, err := os.Open(source)
+				if err != nil {
+					return nil, err
+				}
+				defer file.Close()
+				content, err := io.ReadAll(file)
+				if err != nil {
+					return nil, err
+				}
+				var img ImageId
+				if err := json.Unmarshal(content, &img); err != nil {
+					return nil, err
+				}
+				if img.Name == image.Name && img.Tag == image.Tag {
+					return &img, nil
+				}
+			}
+		}
+	}
+	return nil, nil
 }
 
 // Untar takes a destination path and a reader; a tar reader loops over the tarfile

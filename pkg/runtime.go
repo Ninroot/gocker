@@ -1,11 +1,28 @@
 package pkg
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
 	"syscall"
+
+	"github.com/ninroot/gocker/config"
 )
+
+type runtimeService struct {
+	regSvc RegistryService
+}
+
+func NewRuntimeService() *runtimeService {
+	return &runtimeService{
+		regSvc: NewRegistryService(
+			NewImageStore(EnsureDir(config.DefaultImageStoreRootDir)),
+		),
+	}
+}
 
 func Run(args []string) {
 	log.Println("run with args", args)
@@ -39,15 +56,29 @@ func Run(args []string) {
 	}
 }
 
-func Init(args []string) {
+func (runtime runtimeService) InitContainer(args []string) error {
 	log.Printf("Init with args %v, PID: %v", args, os.Getpid())
-	syscall.Sethostname([]byte("container"))
-	// syscall.Chroot("/tmp/gocker/img/")
-	if err := syscall.Chroot("/home/ninroot/Downloads/alpine_arm64v8"); err != nil {
-		log.Fatal(err)
+	inputImage, err := Parse(args[0])
+	if err != nil {
+		return err
+	}
+
+	image, err := runtime.regSvc.imgStore.FindImage(inputImage)
+	if err != nil {
+		return err
+	}
+	if image == nil {
+		return fmt.Errorf("image <%s:%s> not found", image.Name, image.Digest)
+	}
+	syscall.Sethostname([]byte(filepath.Base(image.Name)))
+
+	p := path.Join(runtime.regSvc.imgStore.rootDir, image.Digest, "rootfs")
+	log.Println("rootpath", p)
+	if err := syscall.Chroot(p); err != nil {
+		return err
 	}
 	if err := syscall.Chdir("/"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// mount /proc to make commands such `ps` working
@@ -61,6 +92,7 @@ func Init(args []string) {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }

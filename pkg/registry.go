@@ -1,31 +1,20 @@
 package pkg
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/heroku/docker-registry-client/registry"
 	"github.com/ninroot/gocker/config"
 	"golang.org/x/term"
 )
 
-type ImageStore struct {
-	rootDir string
-}
-
 type ImageId struct {
+	// Full path name of the image. Which means it can include the respository. E.g: `library/alpine`
 	Name   string `json:"name"`
 	Tag    string `json:"tag"`
 	Digest string `json:"digest"`
-}
-
-func NewImageStore(rootDir string) ImageStore {
-	return ImageStore{
-		rootDir: rootDir,
-	}
 }
 
 type RegistryService struct {
@@ -41,7 +30,7 @@ func NewRegistryService(imgStore ImageStore) RegistryService {
 }
 
 func (reg *RegistryService) Pull(imageName string) error {
-	image, err := parse(imageName)
+	image, err := Parse(imageName)
 	if err != nil {
 		return err
 	}
@@ -56,9 +45,6 @@ func (reg *RegistryService) Pull(imageName string) error {
 		return err
 	}
 
-	if image.Tag == "" {
-		image.Tag = "latest"
-	}
 	manifest, err := hub.ManifestV2(image.Name, image.Tag)
 	if err != nil {
 		return err
@@ -73,24 +59,11 @@ func (reg *RegistryService) Pull(imageName string) error {
 
 	image.Digest = string(digest)
 
-	if err := CreateImage(reader, image); err != nil {
+	if err := reg.imgStore.CreateImage(reader, image); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// name[:TAG]
-// return repository and tag
-func parse(imageName string) (ImageId, error) {
-	s := strings.Split(imageName, ":")
-	if len(s) == 1 {
-		return ImageId{Name: s[0]}, nil
-	}
-	if len(s) == 2 {
-		return ImageId{Name: s[0], Tag: s[1]}, nil
-	}
-	return ImageId{}, errors.New("image name has the wrong format")
 }
 
 func login(registry string) (string, string, error) {
@@ -101,11 +74,13 @@ func login(registry string) (string, string, error) {
 		fmt.Printf("To interact with the registry <%s>, credentials are required.\n", registry)
 	}
 	if username == "" {
+		fmt.Printf("Username: ")
 		if _, err := fmt.Scanf("%s", &username); err != nil {
 			return "", "", err
 		}
 	}
 	if password == "" {
+		fmt.Printf("Password: ")
 		p, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
 			return "", "", err
