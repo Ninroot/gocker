@@ -9,7 +9,7 @@ import (
 )
 
 var pullCommand = &cobra.Command{
-	Use:   "pull",
+	Use:   "pull IMAGE",
 	Args:  cobra.ExactArgs(1),
 	Short: "pull container image",
 	Run: func(cmd *cobra.Command, args []string) {
