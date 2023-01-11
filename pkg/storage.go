@@ -21,8 +21,8 @@ func NewImageStore(rootDir string) ImageStore {
 	}
 }
 
-func (store ImageStore) CreateImage(reader io.ReadCloser, image ImageId) error {
-	rootDir := filepath.Join(store.rootDir, image.Digest)
+func (s ImageStore) CreateImage(reader io.ReadCloser, image ImageId) error {
+	rootDir := filepath.Join(s.rootDir, image.Digest)
 	prs, err := Exist(rootDir)
 	if err != nil {
 		return err
@@ -53,14 +53,48 @@ func (store ImageStore) CreateImage(reader io.ReadCloser, image ImageId) error {
 	return nil
 }
 
-func (store ImageStore) FindImage(image ImageId) (*ImageId, error) {
-	items, err := os.ReadDir(store.rootDir)
+func (s ImageStore) ListImages() ([]ImageId, error) {
+	items, err := os.ReadDir(s.rootDir)
+	if err != nil {
+		return nil, err
+	}
+	images := make([]ImageId, 0)
+	for _, item := range items {
+		if item.IsDir() {
+			source := path.Join(s.rootDir, item.Name(), "source")
+			prs, err := Exist(source)
+			if err != nil {
+				return nil, err
+			}
+			if prs {
+				file, err := os.Open(source)
+				if err != nil {
+					return nil, err
+				}
+				defer file.Close()
+				content, err := io.ReadAll(file)
+				if err != nil {
+					return nil, err
+				}
+				var img ImageId
+				if err := json.Unmarshal(content, &img); err != nil {
+					return nil, err
+				}
+				images = append(images, img)
+			}
+		}
+	}
+	return images, nil
+}
+
+func (s ImageStore) FindImage(image ImageId) (*ImageId, error) {
+	items, err := os.ReadDir(s.rootDir)
 	if err != nil {
 		return nil, err
 	}
 	for _, item := range items {
 		if item.IsDir() {
-			source := path.Join(store.rootDir, item.Name(), "source")
+			source := path.Join(s.rootDir, item.Name(), "source")
 			prs, err := Exist(source)
 			log.Println("source", source)
 			if err != nil {

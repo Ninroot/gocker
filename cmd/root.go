@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/ninroot/gocker/cmd/image"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -11,6 +12,7 @@ func init() {
 	rootCmd.AddCommand(pullCommand)
 	rootCmd.AddCommand(runCommand)
 	rootCmd.AddCommand(techCommand)
+	rootCmd.AddCommand(image.Command)
 }
 
 var rootCmd = &cobra.Command{
