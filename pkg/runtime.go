@@ -63,7 +63,7 @@ func (runtime runtimeService) InitContainer(args []string) error {
 		return err
 	}
 
-	image, err := runtime.regSvc.imgStore.FindImage(inputImage)
+	image, err := runtime.regSvc.imgStore.FindImage(&inputImage)
 	if err != nil {
 		return err
 	}
