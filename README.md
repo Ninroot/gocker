@@ -1,5 +1,9 @@
 # Gocker
 
+A Docker implementation written in Golang designed for educational purposes. We __do not recommend using it in production environments__, and suggest running it inside a virtual machine instead.
+
+## Example of use
+
 ```shell
 # for arm image
 ./build/gocker pull arm64v8/alpine
@@ -27,4 +31,5 @@ Great souces to learn Docker:
 - [x] change hostname inside the container using the `/proc/self/exec` trick described in the medium article
 - [x] basic chroot
 - [x] basic pull with API
+- [x] docker image list
 - [ ] copy on write fs for the image 
