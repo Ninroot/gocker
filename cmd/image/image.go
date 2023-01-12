@@ -2,11 +2,13 @@ package image
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	Command.AddCommand(listCommand)
+	Command.AddCommand(removeCommand)
 }
 
 var Command = &cobra.Command{
