@@ -1,13 +1,31 @@
 # Gocker
 
+![gocker](https://user-images.githubusercontent.com/11426226/212131970-c8f78c2c-3441-44d9-bffb-07793f145e87.png)
+
 A Docker implementation written in Golang designed for educational purposes. We __do not recommend using it in production environments__, and suggest running it inside a virtual machine instead.
+
+## Install
+
+```bash
+git clone https://github.com/Ninroot/gocker
+cd gocker/
+make
+cd build/
+./gocker --help
+```
 
 ## Example of use
 
+When using Gocker, you need to be specific when pulling or running an image, as it does not have the same magic as Docker does. For example, use `pull amd64/alpine` instead of just `pull alpine`.
+
 ```shell
-# for arm image
-./build/gocker pull arm64v8/alpine
-./build/gocker run arm64v8/alpine
+# image for ARM-based system (like mac running on Apple silicon)
+./gocker pull arm64v8/alpine
+
+# requires sudo
+sudo ./gocker run arm64v8/alpine
+
+./gocker image rm arm64v8/alpine
 ```
 
 ## Dev comments
@@ -32,4 +50,5 @@ Great souces to learn Docker:
 - [x] basic chroot
 - [x] basic pull with API
 - [x] docker image list
+- [x] docker image rm
 - [ ] copy on write fs for the image 
