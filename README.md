@@ -4,6 +4,16 @@
 
 A Docker implementation written in Golang designed for educational purposes. We __do not recommend using it in production environments__, and suggest running it inside a virtual machine instead.
 
+## Prerequisites
+
+Gocker runs only on Linux-based system with version 3.10 or higher of the Linux kernel.
+
+Required packages:
+- libcgroup-tools
+
+Required configuration:
+- A btrfs filesystem mounted under /var/btrfs
+
 ## Install
 
 ```bash
