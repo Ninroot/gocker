@@ -10,6 +10,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/containerd/btrfs"
 )
 
 type ImageStore struct {
@@ -23,6 +25,10 @@ func NewImageStore(rootDir string) ImageStore {
 }
 
 func (s ImageStore) CreateImage(reader io.ReadCloser, image ImageId) error {
+	if err := os.MkdirAll(s.rootDir, 0700); err != nil {
+		return err
+	}
+
 	rootDir := filepath.Join(s.rootDir, image.Digest)
 	prs, err := Exist(rootDir)
 	if err != nil {
@@ -33,7 +39,7 @@ func (s ImageStore) CreateImage(reader io.ReadCloser, image ImageId) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(rootDir, 0700); err != nil {
+	if err := btrfs.SubvolCreate(rootDir); err != nil {
 		return err
 	}
 
