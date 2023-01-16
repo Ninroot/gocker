@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -63,17 +62,16 @@ func (runtime runtimeService) InitContainer(args []string) error {
 		return err
 	}
 
-	image, err := runtime.regSvc.imgStore.FindImage(&inputImage)
+	image, err := runtime.regSvc.imgStore.CreateContainer(&inputImage)
+
+	// TODO finish
+
 	if err != nil {
 		return err
-	}
-	if image == nil {
-		return fmt.Errorf("image <%s:%s> not found", image.Name, image.Digest)
 	}
 	syscall.Sethostname([]byte(filepath.Base(image.Name)))
 
 	p := path.Join(runtime.regSvc.imgStore.rootDir, image.Digest, "rootfs")
-	log.Println("rootpath", p)
 	if err := syscall.Chroot(p); err != nil {
 		return err
 	}
