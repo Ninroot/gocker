@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -9,17 +11,18 @@ import (
 	"syscall"
 
 	"github.com/ninroot/gocker/config"
+	"github.com/ninroot/gocker/pkg/image"
+	"github.com/ninroot/gocker/pkg/storage"
+	"github.com/ninroot/gocker/pkg/util"
 )
 
 type runtimeService struct {
-	regSvc RegistryService
+	imgStore storage.ImageStore
 }
 
 func NewRuntimeService() *runtimeService {
 	return &runtimeService{
-		regSvc: NewRegistryService(
-			NewImageStore(EnsureDir(config.DefaultImageStoreRootDir)),
-		),
+		imgStore: storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
 	}
 }
 
@@ -55,14 +58,17 @@ func Run(args []string) {
 	}
 }
 
-func (runtime runtimeService) InitContainer(args []string) error {
+func (r runtimeService) InitContainer(args []string) error {
 	log.Printf("Init with args %v, PID: %v", args, os.Getpid())
-	inputImage, err := Parse(args[0])
+	input, err := image.Parse(args[0])
 	if err != nil {
 		return err
 	}
 
-	image, err := runtime.regSvc.imgStore.CreateContainer(&inputImage)
+	img, err := r.FindImageByNameAndId(input.Name, input.Tag)
+	if err != nil {
+		return err
+	}
 
 	// TODO finish
 
@@ -71,7 +77,7 @@ func (runtime runtimeService) InitContainer(args []string) error {
 	}
 	syscall.Sethostname([]byte(filepath.Base(image.Name)))
 
-	p := path.Join(runtime.regSvc.imgStore.rootDir, image.Digest, "rootfs")
+	p := path.Join(r.imgStore.rootDir, image.Digest, "rootfs")
 	if err := syscall.Chroot(p); err != nil {
 		return err
 	}
@@ -93,4 +99,35 @@ func (runtime runtimeService) InitContainer(args []string) error {
 		return err
 	}
 	return nil
+}
+
+func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Image, error) {
+	if name == "" || tag == "" {
+		return nil, nil
+	}
+
+	imgs, err := r.imgStore.ListImages()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, img := range imgs {
+		f, err := os.Open(img.SourceFile())
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		content, err := io.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+		var j image.Image
+		if err := json.Unmarshal(content, &j); err != nil {
+			return nil, err
+		}
+		if j.Name == name && j.Tag == tag {
+			return &j, nil
+		}
+	}
+	return nil, nil
 }

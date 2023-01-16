@@ -7,22 +7,17 @@ import (
 
 	"github.com/heroku/docker-registry-client/registry"
 	"github.com/ninroot/gocker/config"
+	"github.com/ninroot/gocker/pkg/image"
+	"github.com/ninroot/gocker/pkg/storage"
 	"golang.org/x/term"
 )
 
-type ImageId struct {
-	// Full path name of the image. Which means it can include the respository. E.g: `library/alpine`
-	Name   string `json:"name"`
-	Tag    string `json:"tag"`
-	Digest string `json:"digest"`
-}
-
 type RegistryService struct {
 	registry string
-	imgStore ImageStore
+	imgStore storage.ImageStore
 }
 
-func NewRegistryService(imgStore ImageStore) RegistryService {
+func NewRegistryService(imgStore storage.ImageStore) RegistryService {
 	return RegistryService{
 		registry: config.DefaultRegistry,
 		imgStore: imgStore,
@@ -30,7 +25,7 @@ func NewRegistryService(imgStore ImageStore) RegistryService {
 }
 
 func (reg *RegistryService) Pull(imageName string) error {
-	image, err := Parse(imageName)
+	image, err := image.Parse(imageName)
 	if err != nil {
 		return err
 	}
@@ -59,7 +54,7 @@ func (reg *RegistryService) Pull(imageName string) error {
 
 	image.Digest = string(digest)
 
-	if err := reg.imgStore.CreateImage(reader, image); err != nil {
+	if _, err := reg.imgStore.CreateImage(reader, image.Digest); err != nil {
 		return err
 	}
 
