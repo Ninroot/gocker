@@ -156,3 +156,14 @@ func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Im
 	}
 	return nil, nil
 }
+
+func (r runtimeService) RemoveImage(name string, tag string) error {
+	img, err := r.FindImageByNameAndId(name, tag)
+	if err != nil {
+		return err
+	}
+	if img == nil {
+		return fmt.Errorf("image not found")
+	}
+	return r.imgStore.RemoveImage(img.Digest)
+}

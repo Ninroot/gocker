@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ninroot/gocker/config"
+	"github.com/ninroot/gocker/pkg"
 	"github.com/ninroot/gocker/pkg/image"
-	"github.com/ninroot/gocker/pkg/storage"
-	"github.com/ninroot/gocker/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +18,11 @@ var removeCommand = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		store := storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir))
-		if err := store.RemoveImage(img.Digest); err != nil {
+		runtime := pkg.NewRuntimeService()
+		if err := runtime.RemoveImage(img.Name, img.Tag); err != nil {
 			log.Fatal(err)
 		} else {
-			fmt.Println("Image deleted: ", img.Digest)
+			fmt.Printf("Image <%s:%s> deleted\n", img.Name, img.Tag)
 		}
 	},
 }

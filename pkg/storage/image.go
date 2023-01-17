@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -75,6 +76,9 @@ func (s ImageStore) GetImage(id string) *ImageHandle {
 }
 
 func (s ImageStore) RemoveImage(id string) error {
+	if id == "" {
+		return fmt.Errorf("image id not found")
+	}
 	return os.RemoveAll(s.ImageDir(id))
 }
 
