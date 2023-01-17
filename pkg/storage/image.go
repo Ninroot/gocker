@@ -64,7 +64,7 @@ func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, 
 func (s ImageStore) GetImage(id string) *ImageHandle {
 	d := filepath.Join(s.RootDir(), id)
 	ok, err := util.Exist(d)
-	if err == nil {
+	if err != nil {
 		log.Println("Warning: ", err)
 		return nil
 	}

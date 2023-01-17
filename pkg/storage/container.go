@@ -2,7 +2,6 @@ package storage
 
 import (
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/containerd/btrfs"
@@ -49,7 +48,7 @@ func (s *ContainerStore) RootDir() string {
 func (s *ContainerStore) GetContainer(id string) *ContainerHandle {
 	d := filepath.Join(s.RootDir(), id)
 	ok, err := util.Exist(d)
-	if err == nil {
+	if err != nil {
 		log.Println("Warning: ", err)
 		return nil
 	}
@@ -61,10 +60,6 @@ func (s *ContainerStore) GetContainer(id string) *ContainerHandle {
 
 func (s *ContainerStore) CreateContainer(id string, imagePath string) (*ContainerHandle, error) {
 	contDir := filepath.Join(s.RootDir(), id)
-	if err := os.MkdirAll(contDir, 0700); err != nil {
-		return nil, err
-	}
-
 	if err := btrfs.SubvolSnapshot(contDir, imagePath, false); err != nil {
 		return nil, err
 	}

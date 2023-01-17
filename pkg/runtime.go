@@ -72,11 +72,11 @@ func (r runtimeService) InitContainer(args []string) error {
 	if err != nil {
 		return err
 	}
+	if img == nil {
+		return fmt.Errorf("image <%s:%s> not found", input.Name, input.Tag)
+	}
 
 	imgH := r.imgStore.GetImage(img.Digest)
-	if imgH == nil {
-		return fmt.Errorf("image <%s> not found", img.Digest)
-	}
 
 	uuid := container.RandID()
 	contH, err := r.conStore.CreateContainer(uuid, imgH.ImageDir())
@@ -144,6 +144,9 @@ func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Im
 	imgs, err := r.ListImages()
 	if err != nil {
 		return nil, err
+	}
+	if imgs == nil {
+		return nil, nil
 	}
 
 	for _, img := range *imgs {
