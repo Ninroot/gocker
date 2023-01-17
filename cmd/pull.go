@@ -5,6 +5,8 @@ import (
 
 	"github.com/ninroot/gocker/config"
 	"github.com/ninroot/gocker/pkg"
+	"github.com/ninroot/gocker/pkg/storage"
+	"github.com/ninroot/gocker/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +16,7 @@ var pullCommand = &cobra.Command{
 	Short: "pull container image",
 	Run: func(cmd *cobra.Command, args []string) {
 		regSvc := pkg.NewRegistryService(
-			pkg.NewImageStore(pkg.EnsureDir(config.DefaultImageStoreRootDir)),
+			storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
 		)
 		img := args[0]
 		if err := regSvc.Pull(img); err != nil {

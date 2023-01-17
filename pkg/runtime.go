@@ -1,26 +1,31 @@
 package pkg
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"syscall"
 
 	"github.com/ninroot/gocker/config"
+	"github.com/ninroot/gocker/pkg/container"
+	"github.com/ninroot/gocker/pkg/image"
+	"github.com/ninroot/gocker/pkg/storage"
+	"github.com/ninroot/gocker/pkg/util"
 )
 
 type runtimeService struct {
-	regSvc RegistryService
+	imgStore storage.ImageStore
+	conStore storage.ContainerStore
 }
 
 func NewRuntimeService() *runtimeService {
 	return &runtimeService{
-		regSvc: NewRegistryService(
-			NewImageStore(EnsureDir(config.DefaultImageStoreRootDir)),
-		),
+		imgStore: storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
+		conStore: *storage.NewContainerStore(util.EnsureDir(config.DefaultContainerStoreRootDir)),
 	}
 }
 
@@ -56,30 +61,37 @@ func Run(args []string) {
 	}
 }
 
-func (runtime runtimeService) InitContainer(args []string) error {
+func (r runtimeService) InitContainer(args []string) error {
 	log.Printf("Init with args %v, PID: %v", args, os.Getpid())
-	inputImage, err := Parse(args[0])
+	input, err := image.Parse(args[0])
 	if err != nil {
 		return err
 	}
 
-	image, err := runtime.regSvc.imgStore.FindImage(&inputImage)
+	img, err := r.FindImageByNameAndId(input.Name, input.Tag)
 	if err != nil {
 		return err
 	}
-	if image == nil {
-		return fmt.Errorf("image <%s:%s> not found", image.Name, image.Digest)
+	if img == nil {
+		return fmt.Errorf("image <%s:%s> not found", input.Name, input.Tag)
 	}
-	syscall.Sethostname([]byte(filepath.Base(image.Name)))
 
-	p := path.Join(runtime.regSvc.imgStore.rootDir, image.Digest, "rootfs")
-	log.Println("rootpath", p)
-	if err := syscall.Chroot(p); err != nil {
+	imgH := r.imgStore.GetImage(img.Digest)
+
+	uuid := container.RandID()
+	contH, err := r.conStore.CreateContainer(uuid, imgH.ImageDir())
+	if err != nil {
+		return nil
+	}
+
+	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
 		return err
 	}
 	if err := syscall.Chdir("/"); err != nil {
 		return err
 	}
+
+	syscall.Sethostname([]byte(filepath.Base(img.Name)))
 
 	// mount /proc to make commands such `ps` working
 	syscall.Mount("proc", "proc", "proc", 0, "")
@@ -95,4 +107,63 @@ func (runtime runtimeService) InitContainer(args []string) error {
 		return err
 	}
 	return nil
+}
+
+func (r runtimeService) ListImages() (*[]image.Image, error) {
+	imgs, err := r.imgStore.ListImages()
+	if err != nil {
+		return nil, err
+	}
+
+	images := make([]image.Image, 0)
+	for _, img := range imgs {
+		f, err := os.Open(img.SourceFile())
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		content, err := io.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+		var j image.Image
+		if err := json.Unmarshal(content, &j); err != nil {
+			return nil, err
+		}
+		images = append(images, j)
+	}
+	return &images, nil
+}
+
+func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Image, error) {
+	if name == "" || tag == "" {
+		return nil, nil
+	}
+
+	// Can be optimized: no need list all image first
+	imgs, err := r.ListImages()
+	if err != nil {
+		return nil, err
+	}
+	if imgs == nil {
+		return nil, nil
+	}
+
+	for _, img := range *imgs {
+		if img.Name == name && img.Tag == tag {
+			return &img, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r runtimeService) RemoveImage(name string, tag string) error {
+	img, err := r.FindImageByNameAndId(name, tag)
+	if err != nil {
+		return err
+	}
+	if img == nil {
+		return fmt.Errorf("image not found")
+	}
+	return r.imgStore.RemoveImage(img.Digest)
 }
