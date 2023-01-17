@@ -54,7 +54,12 @@ func (reg *RegistryService) Pull(imageName string) error {
 
 	image.Digest = string(digest)
 
-	if _, err := reg.imgStore.CreateImage(reader, image.Digest); err != nil {
+	imgH, err := reg.imgStore.CreateImage(reader, image.Digest)
+	if err != nil {
+		return err
+	}
+
+	if err := imgH.SetSource(image); err != nil {
 		return err
 	}
 

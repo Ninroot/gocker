@@ -2,14 +2,12 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/containerd/btrfs"
-	"github.com/ninroot/gocker/pkg/container"
 	"github.com/ninroot/gocker/pkg/util"
 )
 
@@ -23,12 +21,14 @@ func NewImageStore(rootDir string) ImageStore {
 	}
 }
 
+// /var/btrfs/img/
 func (s ImageStore) RootDir() string {
 	return s.rootDir
 }
 
+// /var/btrfs/img/abc/
 func (s ImageStore) ImageDir(id string) string {
-	return filepath.Join("img", s.RootDir(), id)
+	return filepath.Join(s.RootDir(), id)
 }
 
 func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, error) {
@@ -36,20 +36,20 @@ func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, 
 		return nil, err
 	}
 
-	imageDir := s.ImageDir(id)
-	prs, err := util.Exist(imageDir)
+	iDir := s.ImageDir(id)
+	prs, err := util.Exist(iDir)
 	if err != nil {
 		return nil, err
 	}
 
-	h := NewImageHandle(id, imageDir)
+	h := NewImageHandle(id, iDir)
 
 	if prs {
-		log.Printf("image <%s> already exists", imageDir)
+		log.Printf("image <%s> already exists", iDir)
 		return h, nil
 	}
 
-	if err := btrfs.SubvolCreate(imageDir); err != nil {
+	if err := btrfs.SubvolCreate(iDir); err != nil {
 		return h, err
 	}
 
@@ -57,43 +57,13 @@ func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, 
 		return h, err
 	}
 
-	source, err := os.Create(h.SourceFile())
-	if err != nil {
-		return h, err
-	}
-	encoder := json.NewEncoder(source)
-	if err := encoder.Encode(h); err != nil {
-		return h, err
-	}
-
 	log.Printf("image <%s> stored in <%s>", h.id, s.rootDir)
 	return h, nil
 }
 
-func (s ImageStore) CreateContainer(id string) (string, error) {
-	h := s.GetImage(id)
-	if h == nil {
-		return "", fmt.Errorf("image <%s> not found", id)
-	}
-
-	contDir := h.ContDir()
-	if err := os.MkdirAll(contDir, 0700); err != nil {
-		return "", err
-	}
-
-	uuid := container.RandID()
-
-	// TODO move to store.container
-	// filepath.Join(s.imageDir, "img", img.Digest
-	if err := btrfs.SubvolSnapshot(filepath.Join(contDir, uuid), h.ImageDir(), false); err != nil {
-		return "", err
-	}
-	return uuid, nil
-}
-
 func (s ImageStore) GetImage(id string) *ImageHandle {
-	p := filepath.Join(s.RootDir(), id)
-	ok, err := util.Exist(p)
+	d := filepath.Join(s.RootDir(), id)
+	ok, err := util.Exist(d)
 	if err == nil {
 		log.Println("Warning: ", err)
 		return nil
@@ -101,28 +71,12 @@ func (s ImageStore) GetImage(id string) *ImageHandle {
 	if !ok {
 		return nil
 	}
-	return NewImageHandle(id, s.rootDir)
+	return NewImageHandle(id, d)
 }
 
 func (s ImageStore) RemoveImage(id string) error {
 	return os.RemoveAll(s.ImageDir(id))
 }
-
-// func (s ImageStore) ListImages() ([]*ImageHandle, error) {
-// 	return s.findImages(nil)
-// }
-
-// FindImage returns the image found in the store or nil if not found.
-// func (s ImageStore) FindImage(image *ImageHandle) (*ImageHandle, error) {
-// 	found, err := s.findImages(image)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if len(found) == 0 {
-// 		return nil, nil
-// 	}
-// 	return found[0], nil
-// }
 
 func (s ImageStore) ListImages() ([]*ImageHandle, error) {
 	items, err := os.ReadDir(s.RootDir())
@@ -132,7 +86,8 @@ func (s ImageStore) ListImages() ([]*ImageHandle, error) {
 	images := make([]*ImageHandle, 0)
 	for _, item := range items {
 		if item.IsDir() {
-			images = append(images, NewImageHandle(item.Name(), s.RootDir()))
+			imageId := item.Name()
+			images = append(images, NewImageHandle(imageId, filepath.Join(s.RootDir(), imageId)))
 		}
 	}
 	return images, nil
@@ -150,18 +105,29 @@ func NewImageHandle(id string, imageDir string) *ImageHandle {
 	}
 }
 
+// /var/btrfs/img/abc/
 func (h ImageHandle) ImageDir() string {
 	return h.imageDir
 }
 
+// /var/btrfs/img/abc/rootfs
 func (h ImageHandle) RootfsDir() string {
 	return filepath.Join(h.ImageDir(), "rootfs")
 }
 
+// /var/btrfs/img/abc/source
 func (h ImageHandle) SourceFile() string {
 	return filepath.Join(h.ImageDir(), "source")
 }
 
-func (h ImageHandle) ContDir() string {
-	return filepath.Join(h.ImageDir(), "con")
+func (h ImageHandle) SetSource(content any) error {
+	f, err := os.OpenFile(h.SourceFile(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	encoder := json.NewEncoder(f)
+	if err := encoder.Encode(content); err != nil {
+		return err
+	}
+	return nil
 }

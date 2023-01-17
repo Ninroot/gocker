@@ -24,7 +24,6 @@ var listCommand = &cobra.Command{
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 		fmt.Fprintf(w, "NAME\tTAG\tDIGEST\t\n")
 		for _, img := range *images {
-
 			fmt.Fprintf(w, "%s\t%s\t%s\n", img.Name, img.Tag, img.Digest)
 		}
 		w.Flush()

@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/ninroot/gocker/config"
+	"github.com/ninroot/gocker/pkg/container"
 	"github.com/ninroot/gocker/pkg/image"
 	"github.com/ninroot/gocker/pkg/storage"
 	"github.com/ninroot/gocker/pkg/util"
@@ -17,11 +19,13 @@ import (
 
 type runtimeService struct {
 	imgStore storage.ImageStore
+	conStore storage.ContainerStore
 }
 
 func NewRuntimeService() *runtimeService {
 	return &runtimeService{
 		imgStore: storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
+		conStore: *storage.NewContainerStore(util.EnsureDir(config.DefaultContainerStoreRootDir)),
 	}
 }
 
@@ -69,13 +73,16 @@ func (r runtimeService) InitContainer(args []string) error {
 		return err
 	}
 
-	contId, err := r.imgStore.CreateContainer(img.Digest)
-	if err != nil {
-		return err
+	imgH := r.imgStore.GetImage(img.Digest)
+	if imgH == nil {
+		return fmt.Errorf("image <%s> not found", img.Digest)
 	}
 
-	imgH := r.imgStore.GetImage(img.Digest)
-	contH := storage.NewContainerHandle(contId, imgH.ContDir())
+	uuid := container.RandID()
+	contH, err := r.conStore.CreateContainer(uuid, imgH.ImageDir())
+	if err != nil {
+		return nil
+	}
 
 	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
 		return err
