@@ -70,13 +70,12 @@ func (r runtimeService) InitContainer(args []string) error {
 		return err
 	}
 
-	// TODO finish
-
 	if err != nil {
 		return err
 	}
-	syscall.Sethostname([]byte(filepath.Base(image.Name)))
+	syscall.Sethostname([]byte(filepath.Base(img.Name)))
 
+	// TODO finish
 	p := path.Join(r.imgStore.rootDir, image.Digest, "rootfs")
 	if err := syscall.Chroot(p); err != nil {
 		return err

@@ -2,12 +2,14 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/containerd/btrfs"
+	"github.com/ninroot/gocker/pkg/container"
 	"github.com/ninroot/gocker/pkg/util"
 )
 
@@ -26,7 +28,7 @@ func (s ImageStore) RootDir() string {
 }
 
 func (s ImageStore) ImageDir(id string) string {
-	return filepath.Join(s.RootDir(), id)
+	return filepath.Join("img", s.RootDir(), id)
 }
 
 func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, error) {
@@ -66,6 +68,40 @@ func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, 
 
 	log.Printf("image <%s> stored in <%s>", h.id, s.rootDir)
 	return h, nil
+}
+
+func (s ImageStore) CreateContainer(id string) (string, error) {
+	h := s.GetImage(id)
+	if h == nil {
+		return "", fmt.Errorf("image <%s> not found", id)
+	}
+
+	contDir := h.ContDir()
+	if err := os.MkdirAll(contDir, 0700); err != nil {
+		return "", err
+	}
+
+	uuid := container.RandID()
+
+	// TODO move to store.container
+	// filepath.Join(s.imageDir, "img", img.Digest
+	if err := btrfs.SubvolSnapshot(filepath.Join(contDir, uuid), h.ImageDir(), false); err != nil {
+		return "", err
+	}
+	return uuid, nil
+}
+
+func (s ImageStore) GetImage(id string) *ImageHandle {
+	p := filepath.Join(s.RootDir(), id)
+	ok, err := util.Exist(p)
+	if err == nil {
+		log.Println("Warning: ", err)
+		return nil
+	}
+	if !ok {
+		return nil
+	}
+	return NewImageHandle(id, s.rootDir)
 }
 
 func (s ImageStore) RemoveImage(id string) error {
@@ -124,4 +160,8 @@ func (h ImageHandle) RootfsDir() string {
 
 func (h ImageHandle) SourceFile() string {
 	return filepath.Join(h.ImageDir(), "source")
+}
+
+func (h ImageHandle) ContDir() string {
+	return filepath.Join(h.ImageDir(), "con")
 }
