@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"syscall"
 
@@ -70,19 +69,22 @@ func (r runtimeService) InitContainer(args []string) error {
 		return err
 	}
 
+	contId, err := r.imgStore.CreateContainer(img.Digest)
 	if err != nil {
 		return err
 	}
-	syscall.Sethostname([]byte(filepath.Base(img.Name)))
 
-	// TODO finish
-	p := path.Join(r.imgStore.rootDir, image.Digest, "rootfs")
-	if err := syscall.Chroot(p); err != nil {
+	imgH := r.imgStore.GetImage(img.Digest)
+	contH := storage.NewContainerHandle(contId, imgH.ContDir())
+
+	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
 		return err
 	}
 	if err := syscall.Chdir("/"); err != nil {
 		return err
 	}
+
+	syscall.Sethostname([]byte(filepath.Base(img.Name)))
 
 	// mount /proc to make commands such `ps` working
 	syscall.Mount("proc", "proc", "proc", 0, "")
@@ -100,16 +102,13 @@ func (r runtimeService) InitContainer(args []string) error {
 	return nil
 }
 
-func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Image, error) {
-	if name == "" || tag == "" {
-		return nil, nil
-	}
-
+func (r runtimeService) ListImages() (*[]image.Image, error) {
 	imgs, err := r.imgStore.ListImages()
 	if err != nil {
 		return nil, err
 	}
 
+	images := make([]image.Image, 0)
 	for _, img := range imgs {
 		f, err := os.Open(img.SourceFile())
 		if err != nil {
@@ -124,8 +123,25 @@ func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Im
 		if err := json.Unmarshal(content, &j); err != nil {
 			return nil, err
 		}
-		if j.Name == name && j.Tag == tag {
-			return &j, nil
+		images = append(images, j)
+	}
+	return &images, nil
+}
+
+func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Image, error) {
+	if name == "" || tag == "" {
+		return nil, nil
+	}
+
+	// Can be optimized: no need list all image first
+	imgs, err := r.ListImages()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, img := range *imgs {
+		if img.Name == name && img.Tag == tag {
+			return &img, nil
 		}
 	}
 	return nil, nil
