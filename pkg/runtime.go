@@ -135,6 +135,13 @@ func (r runtimeService) ListImages() (*[]image.Image, error) {
 	return &images, nil
 }
 
+func (r runtimeService) RemoveContainerById(id string) error {
+	if id == "" {
+		return fmt.Errorf("container id required")
+	}
+	return r.conStore.RemoveContainer(id)
+}
+
 func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Image, error) {
 	if name == "" || tag == "" {
 		return nil, nil

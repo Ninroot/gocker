@@ -2,6 +2,7 @@ package storage
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/containerd/btrfs"
@@ -40,9 +41,18 @@ func NewContainerStore(rootDir string) *ContainerStore {
 	}
 }
 
+func (s *ContainerStore) RemoveContainer(id string) error {
+	return os.RemoveAll(s.ContainerDir(id))
+}
+
 // /var/btrfs/cont/
 func (s *ContainerStore) RootDir() string {
 	return s.rootDir
+}
+
+// /var/btrfs/cont/abc/
+func (s *ContainerStore) ContainerDir(id string) string {
+	return filepath.Join(s.RootDir(), id)
 }
 
 func (s *ContainerStore) GetContainer(id string) *ContainerHandle {
@@ -56,6 +66,21 @@ func (s *ContainerStore) GetContainer(id string) *ContainerHandle {
 		return nil
 	}
 	return NewContainerHandle(id, d)
+}
+
+func (s *ContainerStore) ListContainers() ([]*ContainerHandle, error) {
+	items, err := os.ReadDir(s.RootDir())
+	if err != nil {
+		return nil, err
+	}
+	conts := make([]*ContainerHandle, 0)
+	for _, item := range items {
+		if item.IsDir() {
+			contId := item.Name()
+			conts = append(conts, NewContainerHandle(contId, filepath.Join(s.RootDir(), contId)))
+		}
+	}
+	return conts, nil
 }
 
 func (s *ContainerStore) CreateContainer(id string, imagePath string) (*ContainerHandle, error) {
