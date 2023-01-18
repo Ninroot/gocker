@@ -10,11 +10,12 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(pullCommand)
-	rootCmd.AddCommand(runCommand)
-	rootCmd.AddCommand(rmCommand)
-	rootCmd.AddCommand(techCommand)
 	rootCmd.AddCommand(image.Command)
+	rootCmd.AddCommand(psCommand)
+	rootCmd.AddCommand(pullCommand)
+	rootCmd.AddCommand(rmCommand)
+	rootCmd.AddCommand(runCommand)
+	rootCmd.AddCommand(techCommand)
 }
 
 var rootCmd = &cobra.Command{

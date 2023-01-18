@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/ninroot/gocker/config"
 	"github.com/ninroot/gocker/pkg/container"
@@ -84,6 +85,13 @@ func (r runtimeService) InitContainer(args []string) error {
 		return nil
 	}
 
+	contH.SetSpec(container.Container{
+		ID:        uuid,
+		Name:      "containerName",
+		Image:     *img,
+		CreatedAt: time.Now(),
+	})
+
 	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
 		return err
 	}
@@ -135,13 +143,6 @@ func (r runtimeService) ListImages() (*[]image.Image, error) {
 	return &images, nil
 }
 
-func (r runtimeService) RemoveContainerById(id string) error {
-	if id == "" {
-		return fmt.Errorf("container id required")
-	}
-	return r.conStore.RemoveContainer(id)
-}
-
 func (r runtimeService) FindImageByNameAndId(name string, tag string) (*image.Image, error) {
 	if name == "" || tag == "" {
 		return nil, nil
@@ -173,4 +174,37 @@ func (r runtimeService) RemoveImage(name string, tag string) error {
 		return fmt.Errorf("image not found")
 	}
 	return r.imgStore.RemoveImage(img.Digest)
+}
+
+func (r runtimeService) ListContainers() (*[]container.Container, error) {
+	conts, err := r.conStore.ListContainers()
+	if err != nil {
+		return nil, err
+	}
+
+	containers := make([]container.Container, 0)
+	for _, c := range conts {
+		f, err := os.Open(c.SpecFile())
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		content, err := io.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+		var j container.Container
+		if err := json.Unmarshal(content, &j); err != nil {
+			return nil, err
+		}
+		containers = append(containers, j)
+	}
+	return &containers, nil
+}
+
+func (r runtimeService) RemoveContainer(id string) error {
+	if id == "" {
+		return fmt.Errorf("container id required")
+	}
+	return r.conStore.RemoveContainer(id)
 }
