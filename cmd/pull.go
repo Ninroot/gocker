@@ -3,6 +3,7 @@ package cmd
 import (
 	"log"
 
+	"github.com/ninroot/gocker/cmd/input"
 	"github.com/ninroot/gocker/config"
 	"github.com/ninroot/gocker/pkg"
 	"github.com/ninroot/gocker/pkg/storage"
@@ -18,9 +19,9 @@ var pullCommand = &cobra.Command{
 		regSvc := pkg.NewRegistryService(
 			storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
 		)
-		img := args[0]
-		if err := regSvc.Pull(img); err != nil {
-			log.Println("Failed to pull the image ", img, ": ", err)
+		name, tag := input.Parse(args[0])
+		if err := regSvc.Pull(name, tag); err != nil {
+			log.Fatalf("Failed to pull the image: %s\n", err)
 		}
 	},
 }

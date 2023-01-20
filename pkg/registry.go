@@ -24,12 +24,7 @@ func NewRegistryService(imgStore storage.ImageStore) RegistryService {
 	}
 }
 
-func (reg *RegistryService) Pull(imageName string) error {
-	image, err := image.Parse(imageName)
-	if err != nil {
-		return err
-	}
-
+func (reg *RegistryService) Pull(name string, tag string) error {
 	username, password, err := login(reg.registry)
 	if err != nil {
 		return err
@@ -40,19 +35,23 @@ func (reg *RegistryService) Pull(imageName string) error {
 		return err
 	}
 
-	manifest, err := hub.ManifestV2(image.Name, image.Tag)
+	manifest, err := hub.ManifestV2(name, tag)
 	if err != nil {
 		return err
 	}
-	log.Printf("Found manifest for image <%s:%s>", image.Name, image.Tag)
+	log.Printf("Found manifest for image <%s:%s>", name, tag)
 
 	digest := manifest.Layers[0].Digest
-	reader, err := hub.DownloadBlob(image.Name, digest)
+	reader, err := hub.DownloadBlob(name, digest)
 	if err != nil {
 		return err
 	}
 
-	image.Digest = string(digest)
+	image := image.Image{
+		Name:   name,
+		Tag:    tag,
+		Digest: string(digest),
+	}
 
 	imgH, err := reg.imgStore.CreateImage(reader, image.Digest)
 	if err != nil {
