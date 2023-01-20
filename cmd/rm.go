@@ -13,7 +13,7 @@ var rmCommand = &cobra.Command{
 	Short: "Remove a container",
 	Run: func(cmd *cobra.Command, args []string) {
 		runtime := pkg.NewRuntimeService()
-		err := runtime.RemoveContainerById(args[0])
+		err := runtime.RemoveContainer(args[0])
 		if err != nil {
 			log.Fatal(err)
 		}
