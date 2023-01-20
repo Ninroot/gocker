@@ -11,9 +11,9 @@ import (
 )
 
 var listCommand = &cobra.Command{
-	Use:   "list",
+	Use:   "ls",
 	Args:  cobra.ExactArgs(0),
-	Short: "list images",
+	Short: "List images",
 	Run: func(cmd *cobra.Command, args []string) {
 		run := pkg.NewRuntimeService()
 		images, err := run.ListImages()

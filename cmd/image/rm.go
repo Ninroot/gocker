@@ -12,7 +12,7 @@ import (
 var removeCommand = &cobra.Command{
 	Use:   "rm IMAGE",
 	Args:  cobra.ExactArgs(1),
-	Short: "remove image",
+	Short: "Remove image",
 	Run: func(cmd *cobra.Command, args []string) {
 		img, err := image.Parse(args[0])
 		if err != nil {

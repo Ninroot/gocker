@@ -14,7 +14,7 @@ import (
 var psCommand = &cobra.Command{
 	Use:   "ps",
 	Args:  cobra.ExactArgs(0),
-	Short: "Remove a container",
+	Short: "List containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		runtime := pkg.NewRuntimeService()
 		conts, err := runtime.ListContainers()

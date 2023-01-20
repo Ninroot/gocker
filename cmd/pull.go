@@ -13,7 +13,7 @@ import (
 var pullCommand = &cobra.Command{
 	Use:   "pull IMAGE",
 	Args:  cobra.ExactArgs(1),
-	Short: "pull container image",
+	Short: "Pull container image",
 	Run: func(cmd *cobra.Command, args []string) {
 		regSvc := pkg.NewRegistryService(
 			storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),

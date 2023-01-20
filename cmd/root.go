@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/ninroot/gocker/cmd/image"
@@ -21,9 +20,9 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:   "gocker",
 	Short: "gocker - dockerlike",
-	Long:  "gocker is a Dockerlike project for educational purposes.",
+	Long:  "Gocker is a Dockerlike project for educational purposes.",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Welcome to gocker")
+		cmd.Help()
 	},
 }
 
