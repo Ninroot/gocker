@@ -29,13 +29,9 @@ func NewRuntimeService() *runtimeService {
 	}
 }
 
-func Run(imageName string, imageTag string, containerName string) {
-	cmd := exec.Command("/proc/self/exe", append([]string{"tech"}, imageName, imageTag, containerName)...)
-	// cmd := exec.Command("/bin/sh")
-	// cmd.SysProcAttr = &syscall.SysProcAttr{}
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Cloneflags: syscall.CLONE_NEWUTS}
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Cloneflags: syscall.CLONE_NEWPID}
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Cloneflags: syscall.CLONE_NEWUSER}
+func Run() {
+	args := append([]string{"tech"}, os.Args[2:]...)
+	cmd := exec.Command("/proc/self/exe", args...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID,
@@ -60,7 +56,14 @@ func Run(imageName string, imageTag string, containerName string) {
 	}
 }
 
-func (r runtimeService) InitContainer(imageName string, imageTag string, containerName string) error {
+func getCommand(cmd []string) (command string, args []string) {
+	if len(cmd) == 0 {
+		return "", []string{}
+	}
+	return cmd[0], cmd[1:]
+}
+
+func (r runtimeService) InitContainer(imageName, imageTag, containerName string, containerCmd []string) error {
 	img, err := r.FindImageByNameAndId(imageName, imageTag)
 	if err != nil {
 		return err
@@ -77,12 +80,18 @@ func (r runtimeService) InitContainer(imageName string, imageTag string, contain
 		return nil
 	}
 
-	contH.SetSpec(container.Container{
+	cmdName, cmdArgs := getCommand(containerCmd)
+
+	c := container.Container{
 		ID:        uuid,
 		Name:      containerName,
 		Image:     *img,
 		CreatedAt: time.Now(),
-	})
+		Command:   cmdName,
+		Args:      cmdArgs,
+	}
+
+	contH.SetSpec(c)
 
 	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
 		return err
@@ -91,13 +100,15 @@ func (r runtimeService) InitContainer(imageName string, imageTag string, contain
 		return err
 	}
 
+	// hostname will be affected if this function runs in a process that hasn't been with CLONE_NEWUTS
+	// happens typically when debugging
 	syscall.Sethostname([]byte(uuid))
 
 	// mount /proc to make commands such `ps` working
 	syscall.Mount("proc", "proc", "proc", 0, "")
 	defer syscall.Unmount("/proc", 0)
 
-	cmd := exec.Command("/bin/sh")
+	cmd := exec.Command(c.Command, c.Args...)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

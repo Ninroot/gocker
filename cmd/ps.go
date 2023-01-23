@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -22,9 +23,10 @@ var psCommand = &cobra.Command{
 			log.Fatal(err)
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-		fmt.Fprintf(w, "CONTAINER ID\tIMAGE\tCREATED\tNAME\n")
+		fmt.Fprintf(w, "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tNAME\n")
 		for _, c := range *conts {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", c.ID, c.Image.Name, c.CreatedAt.Format(time.RFC3339), c.Name)
+			cmdFmt := fmt.Sprintf("%s %s", c.Command, strings.Join(c.Args, " "))
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", c.ID, c.Image.Name, cmdFmt, c.CreatedAt.Format(time.RFC3339), c.Name)
 		}
 		w.Flush()
 	},

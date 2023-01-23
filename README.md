@@ -12,7 +12,7 @@ Required packages:
 - libcgroup-tools
 
 Required configuration:
-- A btrfs filesystem mounted under /var/btrfs
+- A btrfs filesystem mounted under /var/gocker
 
 ## Install
 
@@ -62,3 +62,6 @@ Great souces to learn Docker:
 - [x] docker image list
 - [x] docker image rm
 - [ ] copy on write fs for the image 
+
+Bugs
+- [ ] conts/ is created by root resulting in the necessity of using sudo to rm. Happens also with img/ when it hasn't be created beforhand and run is invoked with sudo resulting in the incapacity to pull the image without root 

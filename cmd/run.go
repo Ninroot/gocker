@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/ninroot/gocker/cmd/input"
 	"github.com/ninroot/gocker/pkg"
 	"github.com/spf13/cobra"
 )
@@ -13,8 +12,7 @@ var runCommand = &cobra.Command{
 	Short: "Run a command in a new container",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		imageName, imageTag := input.Parse(args[0])
-		pkg.Run(imageName, imageTag, containerName)
+		pkg.Run()
 	},
 }
 

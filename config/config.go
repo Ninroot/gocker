@@ -1,7 +1,7 @@
 package config
 
 const (
-	DefaultImageStoreRootDir     = "/var/btrfs/img"
-	DefaultContainerStoreRootDir = "/var/btrfs/cont"
+	DefaultImageStoreRootDir     = "/var/gocker/img"
+	DefaultContainerStoreRootDir = "/var/gocker/cont"
 	DefaultRegistry              = "https://registry-1.docker.io/"
 )
