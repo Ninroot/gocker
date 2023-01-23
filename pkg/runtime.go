@@ -34,7 +34,11 @@ func Run() {
 	cmd := exec.Command("/proc/self/exe", args...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID,
+		Cloneflags: syscall.CLONE_NEWUTS |
+			syscall.CLONE_NEWPID |
+			syscall.CLONE_NEWNS,
+		// make the mounting point no longer visible to the host
+		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
 	// cmd.SysProcAttr = &syscall.SysProcAttr{

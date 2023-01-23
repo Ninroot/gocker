@@ -48,8 +48,11 @@ if set without `SysProcAttr.Credential`, `id` returns uid=65534(nobody) gid=6553
 
 `CLONE_NEWPID` creates the process in a new PID namespace resulting in having a PID equal to 1.
 `echo $$` returns 1
-Only a privileged process (CAP_SYS_ADMIN) can employ `CLONE_NEWPID`. In other words, sudo is required to run the binary.
+Use of CLONE_NEWPID requires the CAP_SYS_ADMIN capability. In other words, sudo is required to run the binary.
 if set without `SysProcAttr.Credential`, `id` returns uid=0(root) gid=0(root) groups=0(root)
+
+`CLONE_NEWNS` the child process have a different mount namespace to its.
+Use of CLONE_NEWNS requires the CAP_SYS_ADMIN capability.
 
 Great souces to learn Docker:
 - https://youtu.be/-YnMr1lj4Z8
