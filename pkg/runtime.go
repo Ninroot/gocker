@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -29,7 +32,7 @@ func NewRuntimeService() *runtimeService {
 	}
 }
 
-func Run() {
+func Run() error {
 	args := append([]string{"tech"}, os.Args[2:]...)
 	cmd := exec.Command("/proc/self/exe", args...)
 
@@ -55,9 +58,29 @@ func Run() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("Failed to start container: %s", err)
 	}
+
+	cg(cmd.Process.Pid)
+
+	return cmd.Wait()
+}
+
+func cg(pid int) {
+	log.Println("Setting cgroup for pid", pid)
+	cgroups := "/sys/fs/cgroup/"
+	pids := filepath.Join(cgroups, "pids")
+	os.Mkdir(filepath.Join(pids, "gocker"), 0755)
+
+	// limit the number of child processes to 10 to prevent crashes from forkbomb
+	ioutil.WriteFile(filepath.Join(pids, "gocker/pids.max"), []byte("10"), 0700)
+
+	//
+	ioutil.WriteFile(filepath.Join(pids, "gocker/notify_on_release"), []byte("1"), 0700)
+
+	// up here we write container PIDs to cgroup.procs
+	ioutil.WriteFile(filepath.Join(pids, "gocker/cgroup.procs"), []byte(strconv.Itoa(pid)), 0700)
 }
 
 func getCommand(cmd []string) (command string, args []string) {
