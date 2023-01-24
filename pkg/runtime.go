@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/ninroot/gocker/config"
+	"github.com/ninroot/gocker/pkg/cgroups"
 	"github.com/ninroot/gocker/pkg/container"
 	"github.com/ninroot/gocker/pkg/image"
 	"github.com/ninroot/gocker/pkg/storage"
@@ -23,12 +22,14 @@ import (
 type runtimeService struct {
 	imgStore storage.ImageStore
 	conStore storage.ContainerStore
+	cgroup   cgroups.CGroup
 }
 
 func NewRuntimeService() *runtimeService {
 	return &runtimeService{
 		imgStore: storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
 		conStore: *storage.NewContainerStore(util.EnsureDir(config.DefaultContainerStoreRootDir)),
+		cgroup:   cgroups.New(util.EnsureDir(config.DefaultCGroupDir)),
 	}
 }
 
@@ -62,25 +63,21 @@ func Run() error {
 		return fmt.Errorf("Failed to start container: %s", err)
 	}
 
-	cg(cmd.Process.Pid)
+	r.applyCGroup(cmd.Process.Pid)
 
 	return cmd.Wait()
 }
 
-func cg(pid int) {
+func (r runtimeService) applyCGroup(pid int) error {
 	log.Println("Setting cgroup for pid", pid)
-	cgroups := "/sys/fs/cgroup/"
-	pids := filepath.Join(cgroups, "pids")
-	os.Mkdir(filepath.Join(pids, "gocker"), 0755)
-
-	// limit the number of child processes to 10 to prevent crashes from forkbomb
-	ioutil.WriteFile(filepath.Join(pids, "gocker/pids.max"), []byte("10"), 0700)
-
-	//
-	ioutil.WriteFile(filepath.Join(pids, "gocker/notify_on_release"), []byte("1"), 0700)
-
-	// up here we write container PIDs to cgroup.procs
-	ioutil.WriteFile(filepath.Join(pids, "gocker/cgroup.procs"), []byte(strconv.Itoa(pid)), 0700)
+	g := r.cgroup.NewGroup(strconv.Itoa(pid))
+	if err := g.SetPidMax(10); err != nil {
+		return err
+	}
+	if err := g.SetNotifyOnRelease(true); err != nil {
+		return err
+	}
+	return g.AddProc(pid)
 }
 
 func getCommand(cmd []string) (command string, args []string) {
