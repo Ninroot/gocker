@@ -14,7 +14,7 @@ func init() {
 	rootCmd.AddCommand(pullCommand)
 	rootCmd.AddCommand(rmCommand)
 	rootCmd.AddCommand(runCommand)
-	rootCmd.AddCommand(techCommand)
+	rootCmd.AddCommand(internalCommand)
 }
 
 var rootCmd = &cobra.Command{

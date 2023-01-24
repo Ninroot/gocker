@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,6 +18,15 @@ import (
 	"github.com/ninroot/gocker/pkg/storage"
 	"github.com/ninroot/gocker/pkg/util"
 )
+
+type RunRequest struct {
+	ImageName        string
+	ImageTag         string
+	ContainerName    string
+	ContainerCommand string
+	ContainerID      string
+	ContainerArgs    []string
+}
 
 type runtimeService struct {
 	imgStore storage.ImageStore
@@ -33,9 +42,19 @@ func NewRuntimeService() *runtimeService {
 	}
 }
 
-func Run() error {
-	args := append([]string{"tech"}, os.Args[2:]...)
+func (r runtimeService) Run(req RunRequest) error {
+	req.ContainerID = container.RandID()
+	args := append([]string{"internal"},
+		"--ContainerName", req.ContainerName,
+		"--ImageName", req.ImageName,
+		"--ImageTag", req.ImageTag,
+		"--ContainerCommand", req.ContainerCommand,
+		"--ContainerID", req.ContainerID,
+		"--", strings.Join(req.ContainerArgs, " "),
+	)
 	cmd := exec.Command("/proc/self/exe", args...)
+
+	fmt.Println("Run args", args)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUTS |
@@ -63,14 +82,17 @@ func Run() error {
 		return fmt.Errorf("Failed to start container: %s", err)
 	}
 
-	r.applyCGroup(cmd.Process.Pid)
+	err := r.applyCGroup(req.ContainerID, cmd.Process.Pid)
+	if err != nil {
+		fmt.Println("Failed to apply cgroup", err)
+	}
 
 	return cmd.Wait()
 }
 
-func (r runtimeService) applyCGroup(pid int) error {
+func (r runtimeService) applyCGroup(group string, pid int) error {
 	log.Println("Setting cgroup for pid", pid)
-	g := r.cgroup.NewGroup(strconv.Itoa(pid))
+	g := r.cgroup.NewGroup(group)
 	if err := g.SetPidMax(10); err != nil {
 		return err
 	}
@@ -80,39 +102,28 @@ func (r runtimeService) applyCGroup(pid int) error {
 	return g.AddProc(pid)
 }
 
-func getCommand(cmd []string) (command string, args []string) {
-	if len(cmd) == 0 {
-		return "", []string{}
-	}
-	return cmd[0], cmd[1:]
-}
-
-func (r runtimeService) InitContainer(imageName, imageTag, containerName string, containerCmd []string) error {
-	img, err := r.FindImageByNameAndId(imageName, imageTag)
+func (r runtimeService) InitContainer(req RunRequest) error {
+	img, err := r.FindImageByNameAndId(req.ImageName, req.ImageTag)
 	if err != nil {
 		return err
 	}
 	if img == nil {
-		return fmt.Errorf("image not found: %s:%s", imageName, imageTag)
+		return fmt.Errorf("image not found: %s:%s", req.ImageName, req.ImageTag)
 	}
 
 	imgH := r.imgStore.GetImage(img.Digest)
-
-	uuid := container.RandID()
-	contH, err := r.conStore.CreateContainer(uuid, imgH.ImageDir())
+	contH, err := r.conStore.CreateContainer(req.ContainerID, imgH.ImageDir())
 	if err != nil {
 		return nil
 	}
 
-	cmdName, cmdArgs := getCommand(containerCmd)
-
 	c := container.Container{
-		ID:        uuid,
-		Name:      containerName,
+		ID:        req.ContainerID,
+		Name:      req.ContainerName,
 		Image:     *img,
 		CreatedAt: time.Now(),
-		Command:   cmdName,
-		Args:      cmdArgs,
+		Command:   req.ContainerCommand,
+		Args:      req.ContainerArgs,
 	}
 
 	contH.SetSpec(c)
@@ -126,7 +137,7 @@ func (r runtimeService) InitContainer(imageName, imageTag, containerName string,
 
 	// hostname will be affected if this function runs in a process that hasn't been with CLONE_NEWUTS
 	// happens typically when debugging
-	syscall.Sethostname([]byte(uuid))
+	syscall.Sethostname([]byte(req.ContainerID))
 
 	// mount /proc to make commands such `ps` working
 	syscall.Mount("proc", "proc", "proc", 0, "")

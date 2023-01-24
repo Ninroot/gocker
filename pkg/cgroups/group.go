@@ -68,7 +68,7 @@ func (g Group) SetNotifyOnRelease(b bool) error {
 }
 
 func write(path string, value int) error {
-	if err := os.Mkdir(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
 	return ioutil.WriteFile(path, []byte(strconv.Itoa(value)), 0700)
