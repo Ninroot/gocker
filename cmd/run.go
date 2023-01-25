@@ -18,7 +18,7 @@ var runCommand = &cobra.Command{
 		imageName, imageTag := input.Parse(args[0])
 		req.ImageName = imageName
 		req.ImageTag = imageTag
-		if len(args) >= 1 {
+		if len(args) > 1 {
 			req.ContainerCommand = args[1]
 		}
 		if len(args) > 2 {
