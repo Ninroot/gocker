@@ -29,6 +29,10 @@ func (c CGroup) NewGroup(name string) Group {
 	}
 }
 
+func (g Group) Delete() error {
+	return os.Remove(g.getPidsDir())
+}
+
 // /sys/fs/cgroup/pids/gocker/abc
 func (g Group) getPidsDir() string {
 	return filepath.Join(g.cgroupDir, "pids", "gocker", g.name)

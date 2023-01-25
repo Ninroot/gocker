@@ -82,7 +82,14 @@ func (r runtimeService) Run(req RunRequest) error {
 		return fmt.Errorf("Failed to start container: %s", err)
 	}
 
-	err := r.applyCGroup(req.ContainerID, cmd.Process.Pid)
+	g := r.cgroup.NewGroup(req.ContainerID)
+	defer func() {
+		if err := g.Delete(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	err := applyCGroup(g, cmd.Process.Pid)
 	if err != nil {
 		fmt.Println("Failed to apply cgroup", err)
 	}
@@ -90,9 +97,9 @@ func (r runtimeService) Run(req RunRequest) error {
 	return cmd.Wait()
 }
 
-func (r runtimeService) applyCGroup(group string, pid int) error {
+func applyCGroup(g cgroups.Group, pid int) error {
 	log.Println("Setting cgroup for pid", pid)
-	g := r.cgroup.NewGroup(group)
+
 	if err := g.SetPidMax(10); err != nil {
 		return err
 	}
