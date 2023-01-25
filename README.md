@@ -12,7 +12,8 @@ Required packages:
 - libcgroup-tools
 
 Required configuration:
-- A btrfs filesystem mounted under /var/gocker
+- A btrfs filesystem mounted under /var/gocker (configurable)
+- A cgroup filesystem mounted under /sys/fs/cgroup/ (configurable) if not already the case
 
 ## Install
 
@@ -26,14 +27,16 @@ cd build/
 
 ## Example of use
 
-When using Gocker, you need to be specific when pulling or running an image, as it does not have the same magic as Docker does. For example, use `pull amd64/alpine` instead of just `pull alpine`.
+When using Gocker, you need to be specific when pulling or running an image, as it does not have the same magic as Docker does. For example, use `pull amd64/alpine` instead of just `pull alpine`. We encourage using gocker with sudo privileges.
 
 ```shell
+# most of gocker commands require privileges
+sudo su
+
 # image for ARM-based system (like mac running on Apple silicon)
 ./gocker pull arm64v8/alpine
 
-# requires sudo
-sudo ./gocker run arm64v8/alpine
+./gocker run arm64v8/alpine:latest /bin/sh
 
 ./gocker image rm arm64v8/alpine
 ```
@@ -64,7 +67,9 @@ Great souces to learn Docker:
 - [x] basic pull with API
 - [x] docker image list
 - [x] docker image rm
-- [ ] copy on write fs for the image 
+- [x] copy on write fs for the image
+- [x] enable resources limitation with cgroups
+- [ ] return the exit code of the container
 
 Bugs
-- [ ] conts/ is created by root resulting in the necessity of using sudo to rm. Happens also with img/ when it hasn't be created beforhand and run is invoked with sudo resulting in the incapacity to pull the image without root 
+- [ ] conts/ is created by root resulting in the necessity of using sudo to rm. Happens also with img/ when it hasn't be created beforhand and run is invoked with sudo resulting in the incapacity to pull the image without root.
