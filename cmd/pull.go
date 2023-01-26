@@ -17,7 +17,7 @@ var pullCommand = &cobra.Command{
 	Short: "Pull container image",
 	Run: func(cmd *cobra.Command, args []string) {
 		regSvc := pkg.NewRegistryService(
-			storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
+			storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir), storage.Btrfs{}),
 		)
 		name, tag := input.Parse(args[0])
 		if err := regSvc.Pull(name, tag); err != nil {

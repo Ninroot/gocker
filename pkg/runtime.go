@@ -36,8 +36,8 @@ type runtimeService struct {
 
 func NewRuntimeService() *runtimeService {
 	return &runtimeService{
-		imgStore: storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir)),
-		conStore: *storage.NewContainerStore(util.EnsureDir(config.DefaultContainerStoreRootDir)),
+		imgStore: storage.NewImageStore(util.EnsureDir(config.DefaultImageStoreRootDir), storage.Btrfs{}),
+		conStore: *storage.NewContainerStore(util.EnsureDir(config.DefaultContainerStoreRootDir), storage.Btrfs{}),
 		cgroup:   cgroups.New(util.EnsureDir(config.DefaultCGroupDir)),
 	}
 }

@@ -8,17 +8,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containerd/btrfs"
 	"github.com/ninroot/gocker/pkg/util"
 )
 
 type ImageStore struct {
 	rootDir string
+	fs      COWFS
 }
 
-func NewImageStore(rootDir string) ImageStore {
+func NewImageStore(rootDir string, fs COWFS) ImageStore {
 	return ImageStore{
 		rootDir: rootDir,
+		fs:      fs,
 	}
 }
 
@@ -50,7 +51,7 @@ func (s ImageStore) CreateImage(reader io.ReadCloser, id string) (*ImageHandle, 
 		return h, nil
 	}
 
-	if err := btrfs.SubvolCreate(iDir); err != nil {
+	if err := s.fs.SubvolCreate(iDir); err != nil {
 		return h, err
 	}
 
