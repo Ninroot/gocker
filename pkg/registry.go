@@ -43,6 +43,7 @@ func (reg *RegistryService) Pull(name string, tag string) error {
 
 	digest := manifest.Layers[0].Digest
 	reader, err := hub.DownloadBlob(name, digest)
+	reader.Close()
 	if err != nil {
 		return err
 	}
