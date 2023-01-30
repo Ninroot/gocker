@@ -1,13 +1,14 @@
 package util
 
 import (
-	"log"
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 func EnsureDir(path string) string {
 	if err := os.MkdirAll(path, 0775); err != nil {
-		log.Println("Could not ensure directory:", path)
+		logrus.WithField("path", path).Error("Could not ensure directory")
 	}
 	return path
 }

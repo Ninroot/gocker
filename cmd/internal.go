@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/ninroot/gocker/pkg"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +15,7 @@ var internalCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		r := pkg.NewRuntimeService()
 		if err := r.InitContainer(internReq); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 	},
 }

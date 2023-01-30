@@ -9,8 +9,7 @@ type COWFS interface {
 	SubvolSnapshot(dst string, src string) error
 }
 
-type Btrfs struct {
-}
+type Btrfs struct{}
 
 // SubvolCreate creates a subvolume at the provided path.
 func (b Btrfs) SubvolCreate(path string) error {

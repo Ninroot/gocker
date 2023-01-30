@@ -2,11 +2,11 @@ package storage
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/ninroot/gocker/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 type ContainerHandle struct {
@@ -78,7 +78,7 @@ func (s *ContainerStore) GetContainer(id string) *ContainerHandle {
 	d := filepath.Join(s.RootDir(), id)
 	ok, err := util.Exist(d)
 	if err != nil {
-		log.Println("Warning: ", err)
+		logrus.Warn(err)
 		return nil
 	}
 	if !ok {

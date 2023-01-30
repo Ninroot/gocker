@@ -23,7 +23,7 @@ func TestCreateImage(t *testing.T) {
 	os.Mkdir(imgDir, 0755)
 	_, err := os.OpenFile(filepath.Join(imgDir, "empty"), os.O_CREATE|os.O_RDWR, 0755)
 	if err != nil {
-		log.Fatal("Could not make empty file", err)
+		t.Fatal("Could not make empty file: ", err)
 	}
 
 	r, w := io.Pipe()
@@ -43,9 +43,9 @@ func TestCreateImage(t *testing.T) {
 	wg.Wait()
 
 	if err != nil {
-		log.Fatal("Could not create image", err)
+		t.Fatal("Could not create image: ", err)
 	}
 	if h == nil {
-		log.Fatal("Could not create image: CreateImage returned nil")
+		t.Fatal("Could not create image: CreateImage returned nil")
 	}
 }

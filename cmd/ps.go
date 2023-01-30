@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/ninroot/gocker/pkg"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ var psCommand = &cobra.Command{
 		runtime := pkg.NewRuntimeService()
 		conts, err := runtime.ListContainers()
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 		fmt.Fprintf(w, "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tNAME\n")

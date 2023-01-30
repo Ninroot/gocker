@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"github.com/ninroot/gocker/pkg/image"
 	"github.com/ninroot/gocker/pkg/storage"
 	"github.com/ninroot/gocker/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 type RunRequest struct {
@@ -54,7 +54,7 @@ func (r runtimeService) Run(req RunRequest) error {
 	)
 	cmd := exec.Command("/proc/self/exe", args...)
 
-	fmt.Println("Run args", args)
+	logrus.WithField("args", args).Debug("Internal Run")
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUTS |
@@ -85,7 +85,7 @@ func (r runtimeService) Run(req RunRequest) error {
 	g := r.cgroup.NewGroup(req.ContainerID)
 	defer func() {
 		if err := g.Delete(); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 	}()
 
@@ -98,7 +98,7 @@ func (r runtimeService) Run(req RunRequest) error {
 }
 
 func applyCGroup(g cgroups.Group, pid int) error {
-	log.Println("Setting cgroup for pid", pid)
+	logrus.WithField("pid", pid).Debug("Set cgroup to process")
 
 	if err := g.SetPidMax(10); err != nil {
 		return err

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"log"
 	"os"
 	"testing"
 
@@ -18,6 +17,6 @@ func TestCreateContainer(t *testing.T) {
 	s := NewContainerStore(img, testutil.Testfs{})
 	_, err := s.CreateContainer(container.RandID(), con)
 	if err != nil {
-		log.Fatal("ContainerStore failed: CreateContainer")
+		t.Fatal("ContainerStore failed: CreateContainer")
 	}
 }

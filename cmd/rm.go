@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/ninroot/gocker/pkg"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +14,7 @@ var rmCommand = &cobra.Command{
 		runtime := pkg.NewRuntimeService()
 		err := runtime.RemoveContainer(args[0])
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 	},
 }

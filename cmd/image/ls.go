@@ -2,11 +2,11 @@ package image
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"text/tabwriter"
 
 	"github.com/ninroot/gocker/pkg"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ var listCommand = &cobra.Command{
 		run := pkg.NewRuntimeService()
 		images, err := run.ListImages()
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)

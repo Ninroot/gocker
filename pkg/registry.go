@@ -2,13 +2,13 @@ package pkg
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/heroku/docker-registry-client/registry"
 	"github.com/ninroot/gocker/config"
 	"github.com/ninroot/gocker/pkg/image"
 	"github.com/ninroot/gocker/pkg/storage"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
 
@@ -39,11 +39,13 @@ func (reg *RegistryService) Pull(name string, tag string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Found manifest for image <%s:%s>", name, tag)
+	logrus.WithFields(logrus.Fields{
+		"name": name,
+		"tag":  tag,
+	}).Debug("Found manifest for image")
 
 	digest := manifest.Layers[0].Digest
 	reader, err := hub.DownloadBlob(name, digest)
-	reader.Close()
 	if err != nil {
 		return err
 	}
