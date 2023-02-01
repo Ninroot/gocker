@@ -26,6 +26,12 @@ type RunRequest struct {
 	ContainerCommand string
 	ContainerID      string
 	ContainerArgs    []string
+	ContainerLimits
+}
+
+type ContainerLimits struct {
+	MemoryLimit int
+	PidsLimit   int
 }
 
 type runtimeService struct {
@@ -89,22 +95,25 @@ func (r runtimeService) Run(req RunRequest) error {
 		}
 	}()
 
-	err := applyCGroup(g, cmd.Process.Pid)
+	err := applyCGroup(g, cmd.Process.Pid, req.ContainerLimits)
 	if err != nil {
-		fmt.Println("Failed to apply cgroup", err)
+		return fmt.Errorf("Failed to apply cgroup: %s", err)
 	}
 
 	return cmd.Wait()
 }
 
-func applyCGroup(g cgroups.Group, pid int) error {
+func applyCGroup(g cgroups.Group, pid int, l ContainerLimits) error {
 	logrus.WithField("pid", pid).Debug("Set cgroup to process")
 
-	if err := g.SetPidMax(10); err != nil {
-		return err
+	if err := g.SetPidMax(l.PidsLimit); err != nil {
+		return fmt.Errorf("Failed to set pids limit: %s", err)
+	}
+	if err := g.SetMemoryLimit(l.MemoryLimit); err != nil {
+		return fmt.Errorf("Failed to memory limit: %s", err)
 	}
 	if err := g.SetNotifyOnRelease(true); err != nil {
-		return err
+		return fmt.Errorf("Failed set notify on release: %s", err)
 	}
 	return g.AddProc(pid)
 }

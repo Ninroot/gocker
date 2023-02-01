@@ -33,6 +33,21 @@ func (g Group) Delete() error {
 	return os.Remove(g.getPidsDir())
 }
 
+// /sys/fs/cgroup/memory/gocker/abc
+func (g Group) getMemoryDir() string {
+	return filepath.Join(g.cgroupDir, "memory", "gocker", g.name)
+}
+
+// /sys/fs/cgroup/memory/gocker/abc/pids.max
+func (g Group) getLimitMemoryFile() string {
+	return filepath.Join(g.getMemoryDir(), "memory.limit_in_bytes")
+}
+
+// SetMemoryLimit limits the memory of the process in Byte.
+func (g Group) SetMemoryLimit(max int) error {
+	return write(g.getLimitMemoryFile(), max)
+}
+
 // /sys/fs/cgroup/pids/gocker/abc
 func (g Group) getPidsDir() string {
 	return filepath.Join(g.cgroupDir, "pids", "gocker", g.name)
@@ -53,12 +68,12 @@ func (g Group) getNotifyOnReleaseFile() string {
 	return filepath.Join(g.getPidsDir(), "notify_on_release")
 }
 
-// limit the number of child processes to prevent crashes like forkbomb
+// SetPidMax limits the number of child processes to prevent crashes like forkbomb.
 func (g Group) SetPidMax(max int) error {
 	return write(g.getPidMaxFile(), max)
 }
 
-// add process to cgroup
+// Add Proc adds the process to the cgroup.
 func (g Group) AddProc(pid int) error {
 	return write(g.getProcsFile(), pid)
 }
