@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -144,6 +145,9 @@ func (r runtimeService) InitContainer(req RunRequest) error {
 
 	contH.SetSpec(c)
 
+	unbind := bindDevices(contH.RootfsDir())
+	defer unbind()
+
 	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
 		return err
 	}
@@ -156,7 +160,9 @@ func (r runtimeService) InitContainer(req RunRequest) error {
 	syscall.Sethostname([]byte(req.ContainerID))
 
 	// mount /proc to make commands such `ps` working
-	syscall.Mount("proc", "proc", "proc", 0, "")
+	if err := syscall.Mount("proc", "proc", "proc", 0, ""); err != nil {
+		return err
+	}
 	defer syscall.Unmount("/proc", 0)
 
 	cmd := exec.Command(c.Command, c.Args...)
@@ -169,6 +175,43 @@ func (r runtimeService) InitContainer(req RunRequest) error {
 		return err
 	}
 	return nil
+}
+
+func bindDevices(rootDir string) func() {
+	devices := []string{
+		"/dev/zero",
+		"/dev/null",
+	}
+	unbind := []func(){}
+
+	for _, d := range devices {
+		u, err := bindDevice(d, filepath.Join(rootDir, d))
+		if err != nil {
+			logrus.WithField("device", d).WithError(err).Warn("Failed to bind device")
+		}
+		if u != nil {
+			unbind = append(unbind, u)
+		}
+	}
+
+	return func() {
+		for _, u := range unbind {
+			u()
+		}
+	}
+}
+
+func bindDevice(source, target string) (unmount func(), err error) {
+	f, err := os.Create(target)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create target file: %v", err)
+	}
+	defer f.Close()
+
+	if err := syscall.Mount(source, target, "bind", syscall.MS_RDONLY|syscall.MS_BIND, ""); err != nil {
+		return nil, fmt.Errorf("Failed to mount: %v", err)
+	}
+	return func() { syscall.Unmount(target, 0) }, nil
 }
 
 func (r runtimeService) ListImages() (*[]image.Image, error) {
