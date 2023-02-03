@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"os"
 
 	"github.com/ninroot/gocker/cmd/image"
 	"github.com/ninroot/gocker/config"
@@ -34,6 +35,10 @@ var rootCmd = &cobra.Command{
 			log.Fatal("Failed to set logger: ", err)
 		}
 		logrus.SetLevel(l)
+
+		if os.Geteuid() != 0 {
+			logrus.Fatal("Root privileges required to run this program")
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()

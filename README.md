@@ -27,10 +27,10 @@ cd build/
 
 ## Example of use
 
-When using Gocker, you need to be specific when pulling or running an image, as it does not have the same magic as Docker does. For example, use `pull amd64/alpine` instead of just `pull alpine`. We encourage using gocker with sudo privileges.
+When using Gocker, you need to be specific when pulling or running an image, as it does not have the same magic as Docker does. For example, use `pull amd64/alpine` instead of just `pull alpine`.
 
 ```shell
-# most of gocker commands require privileges
+# gocker requires root privileges
 sudo su
 
 # image for ARM-based system (like mac running on Apple silicon)
@@ -58,8 +58,11 @@ if set without `SysProcAttr.Credential`, `id` returns uid=0(root) gid=0(root) gr
 Use of CLONE_NEWNS requires the CAP_SYS_ADMIN capability.
 
 Great souces to learn Docker:
-- https://youtu.be/-YnMr1lj4Z8
-- https://medium.com/@ssttehrani/containers-from-scratch-with-golang-5276576f9909
+- [How Docker Works - Intro to Namespaces](https://youtu.be/-YnMr1lj4Z8)
+- [Containers the hard way: Gocker: A mini Docker written in Go](https://unixism.net/2020/06/containers-the-hard-way-gocker-a-mini-docker-written-in-go/) - Detailed article explaining another Docker implementation in Golang (not related to this project despite a similar name)
+- [Bocker](https://github.com/p8952/bocker) - Docker implemented in around 100 lines of bash
+- [Containers From Scratch with Golang
+](https://medium.com/@ssttehrani/containers-from-scratch-with-golang-5276576f9909)
 
 ## TODO
 - [x] change hostname inside the container using the `/proc/self/exec` trick described in the medium article
