@@ -1,6 +1,6 @@
 # Gocker
 
-![gocker](https://user-images.githubusercontent.com/11426226/212131970-c8f78c2c-3441-44d9-bffb-07793f145e87.png)
+<img src="https://user-images.githubusercontent.com/11426226/212131970-c8f78c2c-3441-44d9-bffb-07793f145e87.png" height="200" alt="gocker logo">
 
 A Docker implementation written in Golang designed for educational purposes. We __do not recommend using it in production environments__, and suggest running it inside a virtual machine instead.
 
@@ -9,11 +9,11 @@ A Docker implementation written in Golang designed for educational purposes. We 
 Gocker runs only on Linux-based system with version 3.10 or higher of the Linux kernel.
 
 Required packages:
-- libcgroup-tools
+- `libcgroup-tools`
 
 Required configuration:
-- A btrfs filesystem mounted under /var/gocker (configurable)
-- A cgroup filesystem mounted under /sys/fs/cgroup/ (configurable) if not already the case
+- A btrfs filesystem mounted under `/var/gocker` (configurable)
+- A cgroup filesystem mounted under `/sys/fs/cgroup/` (configurable) if not already the case
 
 ## Install
 
@@ -41,21 +41,14 @@ sudo su
 ./gocker image rm arm64v8/alpine
 ```
 
-## Dev comments
+## Isolation
 
-`CLONE_NEWUTS` create the process in a new UTS namespace.
-Allow the set of a new hostname inside the container (using for example `hostname <name>`) without affecting the hostname of the host.
+- file system: via chroot, gives the illusion the container can navigate inside a different distro.
+- PID: via namespace, isolates the processes running inside a container with processes of the host / other containers.
+- Mount: via namespace, isolates the mounts to the container. This prevents the mounts from being visible from the host.
+- UTS: via namespace, allows to set a new hostname inside the container without affecting the hostname of the host.
 
-`CLONE_NEWUSER` creates the process in a new user namespace.
-if set without `SysProcAttr.Credential`, `id` returns uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
-
-`CLONE_NEWPID` creates the process in a new PID namespace resulting in having a PID equal to 1.
-`echo $$` returns 1
-Use of CLONE_NEWPID requires the CAP_SYS_ADMIN capability. In other words, sudo is required to run the binary.
-if set without `SysProcAttr.Credential`, `id` returns uid=0(root) gid=0(root) groups=0(root)
-
-`CLONE_NEWNS` the child process have a different mount namespace to its.
-Use of CLONE_NEWNS requires the CAP_SYS_ADMIN capability.
+## Learn
 
 Great souces to learn Docker:
 - [How Docker Works - Intro to Namespaces](https://youtu.be/-YnMr1lj4Z8)
@@ -63,16 +56,3 @@ Great souces to learn Docker:
 - [Bocker](https://github.com/p8952/bocker) - Docker implemented in around 100 lines of bash
 - [Containers From Scratch with Golang
 ](https://medium.com/@ssttehrani/containers-from-scratch-with-golang-5276576f9909)
-
-## TODO
-- [x] change hostname inside the container using the `/proc/self/exec` trick described in the medium article
-- [x] basic chroot
-- [x] basic pull with API
-- [x] docker image list
-- [x] docker image rm
-- [x] copy on write fs for the image
-- [x] enable resources limitation with cgroups
-- [ ] return the exit code of the container
-
-Bugs
-- [ ] conts/ is created by root resulting in the necessity of using sudo to rm. Happens also with img/ when it hasn't be created beforhand and run is invoked with sudo resulting in the incapacity to pull the image without root.
