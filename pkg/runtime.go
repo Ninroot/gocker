@@ -33,6 +33,7 @@ type RunRequest struct {
 type ContainerLimits struct {
 	MemoryLimit int
 	PidsLimit   int
+	CPULimit    int
 }
 
 type runtimeService struct {
@@ -86,7 +87,7 @@ func (r runtimeService) Run(req RunRequest) error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("Failed to start container: %s", err)
+		return fmt.Errorf("failed to start container: %v", err)
 	}
 
 	g := r.cgroup.NewGroup(req.ContainerID)
@@ -98,7 +99,7 @@ func (r runtimeService) Run(req RunRequest) error {
 
 	err := applyCGroup(g, cmd.Process.Pid, req.ContainerLimits)
 	if err != nil {
-		return fmt.Errorf("Failed to apply cgroup: %s", err)
+		return fmt.Errorf("failed to apply cgroup: %v", err)
 	}
 
 	return cmd.Wait()
@@ -108,13 +109,16 @@ func applyCGroup(g cgroups.Group, pid int, l ContainerLimits) error {
 	logrus.WithField("pid", pid).Debug("Set cgroup to process")
 
 	if err := g.SetPidMax(l.PidsLimit); err != nil {
-		return fmt.Errorf("Failed to set pids limit: %s", err)
+		return fmt.Errorf("failed to set pids limit: %v", err)
 	}
 	if err := g.SetMemoryLimit(l.MemoryLimit); err != nil {
-		return fmt.Errorf("Failed to memory limit: %s", err)
+		return fmt.Errorf("failed to set memory limit: %v", err)
+	}
+	if err := g.SetCpuLimit(l.CPULimit); err != nil {
+		return fmt.Errorf("failed to set cpu limit: %v", err)
 	}
 	if err := g.SetNotifyOnRelease(true); err != nil {
-		return fmt.Errorf("Failed set notify on release: %s", err)
+		return fmt.Errorf("failed to set notify on release: %v", err)
 	}
 	return g.AddProc(pid)
 }
@@ -204,12 +208,12 @@ func bindDevices(rootDir string) func() {
 func bindDevice(source, target string) (unmount func(), err error) {
 	f, err := os.Create(target)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create target file: %v", err)
+		return nil, fmt.Errorf("failed to create target file: %v", err)
 	}
 	defer f.Close()
 
 	if err := syscall.Mount(source, target, "bind", syscall.MS_RDONLY|syscall.MS_BIND, ""); err != nil {
-		return nil, fmt.Errorf("Failed to mount: %v", err)
+		return nil, fmt.Errorf("failed to mount: %v", err)
 	}
 	return func() { syscall.Unmount(target, 0) }, nil
 }

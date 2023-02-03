@@ -35,6 +35,7 @@ var runCommand = &cobra.Command{
 
 func init() {
 	runCommand.Flags().StringVarP(&req.ContainerName, "name", "", "", "Assign a name to the container")
-	runCommand.Flags().IntVar(&req.PidsLimit, "pids-limit", config.DefaultPidsLimit, "Limit the number of  container tasks")
-	runCommand.Flags().IntVarP(&req.MemoryLimit, "memory", "m", config.DefaultMemoryLimit, "Limit the number of  container tasks")
+	runCommand.Flags().IntVar(&req.PidsLimit, "pids-limit", config.DefaultPidsLimit, "Limit the number of container tasks")
+	runCommand.Flags().IntVarP(&req.MemoryLimit, "memory", "m", config.DefaultMemoryLimit, "Limit the memory")
+	runCommand.Flags().IntVar(&req.CPULimit, "cpus", config.DefaultCPULimit, "Limit the number of CPUs")
 }

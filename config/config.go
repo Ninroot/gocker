@@ -8,6 +8,7 @@ const (
 
 	DefaultPidsLimit   = 32
 	DefaultMemoryLimit = 64 * 1024 * 1024 // 64MB
+	DefaultCPULimit    = 1
 
 	DefaultLogLevel = "debug"
 )

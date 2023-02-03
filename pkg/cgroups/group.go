@@ -1,10 +1,14 @@
 package cgroups
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
 )
 
 type CGroup struct {
@@ -31,6 +35,36 @@ func (c CGroup) NewGroup(name string) Group {
 
 func (g Group) Delete() error {
 	return os.Remove(g.getPidsDir())
+}
+
+func (g Group) getCpuDir() string {
+	return filepath.Join(g.cgroupDir, "cpu", "gocker", g.name)
+}
+
+func (g Group) getCfsPeriodFile() string {
+	return filepath.Join(g.getCpuDir(), "cpu.cfs_period_us")
+}
+
+func (g Group) getCfsQuotaFile() string {
+	return filepath.Join(g.getCpuDir(), "cpu.cfs_quota_us")
+}
+
+// setCpuLimit sets the limit in number of CPU
+func (g Group) SetCpuLimit(cpu int) error {
+	if cpu > runtime.NumCPU() {
+		logrus.Info("CPU limit has been set to max")
+		cpu = runtime.NumCPU()
+	}
+	period := 1000000
+	// amount of time, in microseconds, that a CPU can run in a single scheduling period
+	if err := write(g.getCfsPeriodFile(), period); err != nil {
+		return fmt.Errorf("could not set CFS Period: %v", err)
+	}
+	// how much cpu resource can be used in every period
+	if err := write(g.getCfsQuotaFile(), cpu*period); err != nil {
+		return fmt.Errorf("could not set CFS Quota: %v", err)
+	}
+	return nil
 }
 
 // /sys/fs/cgroup/memory/gocker/abc
