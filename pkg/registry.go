@@ -44,6 +44,8 @@ func (reg *RegistryService) Pull(name string, tag string) error {
 		"tag":  tag,
 	}).Debug("Found manifest for image")
 
+	// Subsequent layers are in stack order: https://github.com/opencontainers/image-spec/blob/main/manifest.md
+	// TODO: Combine layers
 	digest := manifest.Layers[0].Digest
 	reader, err := hub.DownloadBlob(name, digest)
 	if err != nil {
