@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/ninroot/gocker/pkg"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -13,9 +15,12 @@ var internalCommand = &cobra.Command{
 	Short: "Internal command for gocker itself",
 	Long:  "Internal command for gocker itself. You probably don't want to use it, unless you know what you are doing.",
 	Run: func(cmd *cobra.Command, args []string) {
-		r := pkg.NewRuntimeService()
-		if err := r.InitContainer(internReq); err != nil {
-			logrus.Fatal(err)
+		e, err := pkg.NewRuntimeService().InitContainer(internReq)
+		if err != nil {
+			logrus.WithError(err).Fatal("Internal: Failed to run container")
+		}
+		if e != nil {
+			os.Exit(*e)
 		}
 	},
 }

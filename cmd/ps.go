@@ -23,11 +23,18 @@ var psCommand = &cobra.Command{
 			logrus.Fatal(err)
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-		fmt.Fprintf(w, "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tNAME\n")
+		fmt.Fprintf(w, "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tSTATUS\tNAME\n")
 		for _, c := range *conts {
 			cmdFmt := fmt.Sprintf("%s %s", c.Command, strings.Join(c.Args, " "))
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", c.ID, c.Image.Name, cmdFmt, c.CreatedAt.Format(time.RFC3339), c.Name)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.ID, c.Image.Name, cmdFmt, c.CreatedAt.Format(time.RFC3339), status(c.ExitCode), c.Name)
 		}
 		w.Flush()
 	},
+}
+
+func status(s *int) string {
+	if s == nil {
+		return "Running"
+	}
+	return fmt.Sprintf("Exited (%d)", *s)
 }

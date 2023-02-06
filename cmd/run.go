@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/ninroot/gocker/cmd/input"
 	"github.com/ninroot/gocker/config"
 	"github.com/ninroot/gocker/pkg"
@@ -25,10 +27,12 @@ var runCommand = &cobra.Command{
 			req.ContainerArgs = args[2:]
 		}
 
-		runtime := pkg.NewRuntimeService()
-
-		if err := runtime.Run(req); err != nil {
-			logrus.Fatal(err)
+		e, err := pkg.NewRuntimeService().Run(req)
+		if err != nil {
+			logrus.WithError(err).Fatal("Failed to run container")
+		}
+		if e != nil {
+			os.Exit(*e)
 		}
 	},
 }

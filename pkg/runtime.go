@@ -50,7 +50,7 @@ func NewRuntimeService() *runtimeService {
 	}
 }
 
-func (r runtimeService) Run(req RunRequest) error {
+func (r runtimeService) Run(req RunRequest) (*int, error) {
 	req.ContainerID = container.RandID()
 	args := append([]string{"internal"},
 		"--ContainerName", req.ContainerName,
@@ -87,7 +87,7 @@ func (r runtimeService) Run(req RunRequest) error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start container: %v", err)
+		return nil, fmt.Errorf("failed to start container: %v", err)
 	}
 
 	g := r.cgroup.NewGroup(req.ContainerID)
@@ -99,10 +99,24 @@ func (r runtimeService) Run(req RunRequest) error {
 
 	err := applyCGroup(g, cmd.Process.Pid, req.ContainerLimits)
 	if err != nil {
-		return fmt.Errorf("failed to apply cgroup: %v", err)
+		return nil, fmt.Errorf("failed to apply cgroup: %v", err)
 	}
 
-	return cmd.Wait()
+	err = cmd.Wait()
+	if e := exitCode(err); e != nil {
+		c, err := r.LoadSpec(req.ContainerID)
+		if err != nil {
+			return nil, err
+		}
+		c.ExitCode = e
+		h := r.conStore.GetContainer(req.ContainerID)
+		h.SetSpec(c)
+		if err != nil {
+			return nil, err
+		}
+		return e, nil
+	}
+	return nil, fmt.Errorf("coud not fetch exit code: %v", err)
 }
 
 func applyCGroup(g cgroups.Group, pid int, l ContainerLimits) error {
@@ -123,19 +137,19 @@ func applyCGroup(g cgroups.Group, pid int, l ContainerLimits) error {
 	return g.AddProc(pid)
 }
 
-func (r runtimeService) InitContainer(req RunRequest) error {
+func (r runtimeService) InitContainer(req RunRequest) (*int, error) {
 	img, err := r.FindImageByNameAndId(req.ImageName, req.ImageTag)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if img == nil {
-		return fmt.Errorf("image not found: %s:%s", req.ImageName, req.ImageTag)
+		return nil, fmt.Errorf("image not found: %s:%s", req.ImageName, req.ImageTag)
 	}
 
 	imgH := r.imgStore.GetImage(img.Digest)
 	contH, err := r.conStore.CreateContainer(req.ContainerID, imgH.ImageDir())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	c := container.Container{
@@ -147,16 +161,18 @@ func (r runtimeService) InitContainer(req RunRequest) error {
 		Args:      req.ContainerArgs,
 	}
 
-	contH.SetSpec(c)
+	if err := contH.SetSpec(c); err != nil {
+		return nil, fmt.Errorf("could set spec file: %v", err)
+	}
 
 	unbind := bindDevices(contH.RootfsDir())
 	defer unbind()
 
 	if err := syscall.Chroot(contH.RootfsDir()); err != nil {
-		return err
+		return nil, fmt.Errorf("could not chroot: %v", err)
 	}
 	if err := syscall.Chdir("/"); err != nil {
-		return err
+		return nil, fmt.Errorf("could not chdir: %v", err)
 	}
 
 	// hostname will be affected if this function runs in a process that hasn't been with CLONE_NEWUTS
@@ -165,7 +181,7 @@ func (r runtimeService) InitContainer(req RunRequest) error {
 
 	// mount /proc to make commands such `ps` working
 	if err := syscall.Mount("proc", "proc", "proc", 0, ""); err != nil {
-		return err
+		return nil, fmt.Errorf("could not mount proc: %v", err)
 	}
 	defer syscall.Unmount("/proc", 0)
 
@@ -175,10 +191,13 @@ func (r runtimeService) InitContainer(req RunRequest) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
-		return err
+	// return cmd.Run()
+
+	err = cmd.Run()
+	if e := exitCode(err); e != nil {
+		return e, nil
 	}
-	return nil
+	return nil, fmt.Errorf("coud not fetch exit code: %v", err)
 }
 
 func bindDevices(rootDir string) func() {
@@ -278,29 +297,44 @@ func (r runtimeService) RemoveImage(name string, tag string) error {
 }
 
 func (r runtimeService) ListContainers() (*[]container.Container, error) {
-	conts, err := r.conStore.ListContainers()
+	handles, err := r.conStore.ListContainers()
 	if err != nil {
 		return nil, err
 	}
 
 	containers := make([]container.Container, 0)
-	for _, c := range conts {
-		f, err := os.Open(c.SpecFile())
+	for _, h := range handles {
+		c, err := r.LoadSpec(h.ID)
 		if err != nil {
-			return nil, err
+			logrus.WithField("ID", h.ID).Warn("could not list container")
 		}
-		defer f.Close()
-		content, err := io.ReadAll(f)
-		if err != nil {
-			return nil, err
-		}
-		var j container.Container
-		if err := json.Unmarshal(content, &j); err != nil {
-			return nil, err
-		}
-		containers = append(containers, j)
+		containers = append(containers, *c)
 	}
 	return &containers, nil
+}
+
+func (r runtimeService) LoadSpec(id string) (*container.Container, error) {
+	contH := r.conStore.GetContainer(id)
+	if contH == nil {
+		return nil, fmt.Errorf("could not find container: %v", id)
+	}
+	f, err := os.Open(contH.SpecFile())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("could not read spec file: %v", err)
+	}
+
+	var j container.Container
+	if err := json.Unmarshal(content, &j); err != nil {
+		return nil, fmt.Errorf("could not unmarshal spec file: %v", err)
+	}
+
+	return &j, nil
 }
 
 func (r runtimeService) RemoveContainer(id string) error {
@@ -308,4 +342,15 @@ func (r runtimeService) RemoveContainer(id string) error {
 		return fmt.Errorf("container id required")
 	}
 	return r.conStore.RemoveContainer(id)
+}
+
+// returns the exit code of the exited process,
+// -1 if the process hasn't exited or was terminated by a signal,
+// nil otherwise
+func exitCode(err error) *int {
+	if exitError, ok := err.(*exec.ExitError); ok {
+		e := exitError.ExitCode()
+		return &e
+	}
+	return nil
 }

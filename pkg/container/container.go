@@ -14,4 +14,5 @@ type Container struct {
 	Args    []string    `json:"args"`
 
 	CreatedAt time.Time `json:"createdAt"`
+	ExitCode  *int      `json:"exitCode"`
 }

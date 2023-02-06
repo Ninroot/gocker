@@ -10,13 +10,13 @@ import (
 )
 
 type ContainerHandle struct {
-	id      string
+	ID      string
 	contDir string
 }
 
 func NewContainerHandle(id string, contDir string) *ContainerHandle {
 	return &ContainerHandle{
-		id:      id,
+		ID:      id,
 		contDir: contDir,
 	}
 }
@@ -26,6 +26,8 @@ func (h *ContainerHandle) SetSpec(content any) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
+
 	encoder := json.NewEncoder(f)
 	if err := encoder.Encode(content); err != nil {
 		return err
