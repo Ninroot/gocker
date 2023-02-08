@@ -346,6 +346,19 @@ func (r runtimeService) RemoveContainer(id string) error {
 	return r.conStore.RemoveContainer(id)
 }
 
+func (r runtimeService) Prune() error {
+	if err := r.imgStore.RemoveImages(); err != nil {
+		return fmt.Errorf("could not prune images: %v", err)
+	}
+	if err := r.conStore.RemoveContainers(); err != nil {
+		return fmt.Errorf("could not prune containers: %v", err)
+	}
+	if err := r.cgroup.DeleteAll(); err != nil {
+		return fmt.Errorf("could not prune cgroups: %v", err)
+	}
+	return nil
+}
+
 // returns the exit code of the exited process,
 // -1 if the process hasn't exited or was terminated by a signal,
 // nil otherwise

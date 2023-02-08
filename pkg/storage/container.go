@@ -66,6 +66,10 @@ func (s *ContainerStore) RemoveContainer(id string) error {
 	return os.RemoveAll(s.ContainerDir(id))
 }
 
+func (s *ContainerStore) RemoveContainers() error {
+	return os.RemoveAll(s.rootDir)
+}
+
 // /var/btrfs/cont/
 func (s *ContainerStore) RootDir() string {
 	return s.rootDir

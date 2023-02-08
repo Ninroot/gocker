@@ -33,6 +33,16 @@ func (c CGroup) NewGroup(name string) Group {
 	}
 }
 
+func (c CGroup) DeleteAll() error {
+	resourceDirs := []string{"cpu", "memory", "pids"}
+	for _, d := range resourceDirs {
+		if err := os.RemoveAll(filepath.Join(c.rootfs, d, "gocker")); err != nil {
+			return fmt.Errorf("could not delete cgroup resource %s: %v", d, err)
+		}
+	}
+	return nil
+}
+
 func (g Group) Delete() error {
 	return os.Remove(g.getPidsDir())
 }

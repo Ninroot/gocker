@@ -15,6 +15,7 @@ var logLevel string
 
 func init() {
 	rootCmd.AddCommand(image.Command)
+	rootCmd.AddCommand(pruneCommand)
 	rootCmd.AddCommand(psCommand)
 	rootCmd.AddCommand(pullCommand)
 	rootCmd.AddCommand(rmCommand)

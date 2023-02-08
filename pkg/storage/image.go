@@ -87,6 +87,10 @@ func (s ImageStore) RemoveImage(id string) error {
 	return os.RemoveAll(s.ImageDir(id))
 }
 
+func (s ImageStore) RemoveImages() error {
+	return os.RemoveAll(s.rootDir)
+}
+
 func (s ImageStore) ListImages() ([]*ImageHandle, error) {
 	items, err := os.ReadDir(s.RootDir())
 	if err != nil {
