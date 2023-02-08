@@ -116,7 +116,9 @@ func (r runtimeService) Run(req RunRequest) (*int, error) {
 		}
 		return e, nil
 	}
-	return nil, fmt.Errorf("coud not fetch exit code: %v", err)
+	logrus.Info("Could not retrieve exit code, assuming its value is 0")
+	e := 0
+	return &e, nil
 }
 
 func applyCGroup(g cgroups.Group, pid int, l ContainerLimits) error {
@@ -191,13 +193,13 @@ func (r runtimeService) InitContainer(req RunRequest) (*int, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// return cmd.Run()
-
 	err = cmd.Run()
 	if e := exitCode(err); e != nil {
 		return e, nil
 	}
-	return nil, fmt.Errorf("coud not fetch exit code: %v", err)
+	logrus.Info("Could not retrieve exit code, assuming its value is 0")
+	e := 0
+	return &e, nil
 }
 
 func bindDevices(rootDir string) func() {
