@@ -2,7 +2,7 @@
 
 <img src="https://user-images.githubusercontent.com/11426226/212131970-c8f78c2c-3441-44d9-bffb-07793f145e87.png" height="200" alt="gocker logo">
 
-A Docker implementation written in Golang designed for educational purposes. We __do not recommend using it in production environments__, and suggest running it inside a virtual machine instead.
+A Docker implementation written in Golang designed for educational purposes. Gocker enables you to create and manage container, pull images, and more. We __do not recommend using it in production environments__, and suggest running it inside a virtual machine instead.
 
 ## Prerequisites
 
